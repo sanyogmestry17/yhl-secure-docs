@@ -1,0 +1,167 @@
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
+import Head from 'next/head';
+import Image from 'next/image';
+
+export default function Dashboard() {
+  const [pdfs, setPdfs] = useState([]);
+  const [user, setUser] = useState(null);
+  const [mounted, setMounted] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    fetch('/api/me').then(r => r.json()).then(d => {
+      if (d.error) { router.push('/'); return; }
+      setUser(d.user);
+      setMounted(true);
+    });
+    fetch('/api/pdf/list').then(r => r.json()).then(d => {
+      if (d.pdfs) setPdfs(d.pdfs);
+    });
+  }, []);
+
+  const logout = async () => {
+    await fetch('/api/logout', { method: 'POST' });
+    router.push('/');
+  };
+
+  return (
+    <>
+      <Head>
+        <title>Documents — YourHappyLife</title>
+        <link rel="icon" href="/logo.png" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </Head>
+      <div style={s.wrap}>
+        {/* Nav */}
+        <nav style={s.nav}>
+          <Image src="/logo.png" alt="YourHappyLife" width={140} height={48} style={{ objectFit:'contain' }} />
+          <div style={s.navR}>
+            {user && (
+              <div style={s.userPill}>
+                <div style={s.userDot} />
+                <span style={s.userEmail}>{user.email}</span>
+              </div>
+            )}
+            <button onClick={logout} style={s.logoutBtn}>
+              Sign out
+            </button>
+          </div>
+        </nav>
+
+        {/* Hero */}
+        <div style={s.hero}>
+          <div style={s.heroInner}>
+            <div style={{ animation: mounted ? 'fadeUp 0.6s ease forwards' : 'none', opacity: mounted ? 1 : 0 }}>
+              <div style={s.heroBadge}>🔒 Internal Portal</div>
+              <h1 style={s.h1}>Company Documents</h1>
+              <p style={s.heroSub}>Secure, view-only access. All sessions are logged with your IP and device information.</p>
+            </div>
+            {user && (
+              <div style={{ ...s.loginInfo, animation: mounted ? 'fadeUp 0.6s 0.2s ease forwards' : 'none', opacity: 0 }}>
+                <span>📍 Last login: {user.loginTime}</span>
+                <span style={s.dot}>•</span>
+                <span>🌐 IP: {user.ip}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Content */}
+        <main style={s.main}>
+          {pdfs.length === 0 ? (
+            <div style={s.empty}>
+              <div style={{ fontSize:56, marginBottom:16, animation:'float 3s ease-in-out infinite' }}>📂</div>
+              <p style={s.emptyText}>No documents available yet.</p>
+              <p style={s.emptySub}>Contact your administrator to add documents.</p>
+            </div>
+          ) : (
+            <div style={s.grid}>
+              {pdfs.map((p, i) => (
+                <div
+                  key={p.id}
+                  style={{
+                    ...s.card,
+                    animation: mounted ? `fadeUp 0.5s ${0.1 + i * 0.1}s ease forwards` : 'none',
+                    opacity: 0,
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = '0 12px 32px rgba(191,4,38,0.12)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 2px 16px rgba(0,0,0,0.06)';
+                  }}
+                >
+                  <div style={s.cardTop}>
+                    <div style={s.fileIconWrap}>
+                      <span style={{ fontSize:28 }}>📄</span>
+                    </div>
+                    <span style={s.viewBadge}>View only</span>
+                  </div>
+                  <h3 style={s.cardTitle}>{p.title}</h3>
+                  <p style={s.cardDesc}>{p.description}</p>
+                  <button
+                    onClick={() => router.push(`/viewer/${p.id}`)}
+                    style={s.openBtn}
+                    onMouseEnter={e => e.currentTarget.style.background = '#8C001B'}
+                    onMouseLeave={e => e.currentTarget.style.background = '#BF0426'}
+                  >
+                    Open Document →
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </main>
+
+        {/* Footer */}
+        <footer style={s.footer}>
+          <span>© {new Date().getFullYear()} YourHappyLife. All access is monitored.</span>
+          <span style={s.dot}>•</span>
+          <span>🔒 Secure Portal</span>
+        </footer>
+      </div>
+
+      <style>{`
+        @media (max-width: 600px) {
+          .dash-grid { grid-template-columns: 1fr !important; }
+          .dash-nav { padding: 12px 16px !important; }
+          .dash-hero { padding: 32px 16px !important; }
+          .dash-main { padding: 24px 16px !important; }
+        }
+      `}</style>
+    </>
+  );
+}
+
+const s = {
+  wrap: { minHeight:'100vh', background:'#f7f7f7', fontFamily:"'Syne',sans-serif", display:'flex', flexDirection:'column' },
+  nav: { display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 40px', background:'#fff', borderBottom:'2px solid #FFF0F2', position:'sticky', top:0, zIndex:100, boxShadow:'0 2px 12px rgba(0,0,0,0.04)' },
+  navR: { display:'flex', alignItems:'center', gap:16 },
+  userPill: { display:'flex', alignItems:'center', gap:8, background:'#FFF0F2', border:'1.5px solid #FADADD', borderRadius:20, padding:'6px 14px' },
+  userDot: { width:8, height:8, borderRadius:'50%', background:'#22c55e', flexShrink:0 },
+  userEmail: { color:'#BF0426', fontSize:12, fontWeight:700 },
+  logoutBtn: { padding:'8px 20px', background:'#BF0426', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:700, fontFamily:"'Syne',sans-serif", transition:'background 0.2s' },
+  hero: { background:'linear-gradient(135deg, #BF0426 0%, #8C001B 100%)', padding:'48px 40px' },
+  heroInner: { maxWidth:1060, margin:'0 auto', display:'flex', flexDirection:'column', gap:16 },
+  heroBadge: { display:'inline-flex', alignItems:'center', gap:6, background:'rgba(255,255,255,0.15)', color:'#fff', fontSize:12, fontWeight:700, padding:'6px 14px', borderRadius:20, marginBottom:12, backdropFilter:'blur(8px)' },
+  h1: { fontSize:'clamp(24px,3vw,38px)', fontWeight:800, color:'#fff', marginBottom:10 },
+  heroSub: { fontSize:14, color:'rgba(255,255,255,0.75)', maxWidth:560, lineHeight:1.7 },
+  loginInfo: { display:'flex', alignItems:'center', gap:12, fontSize:12, color:'rgba(255,255,255,0.6)', flexWrap:'wrap' },
+  dot: { color:'rgba(255,255,255,0.3)' },
+  main: { maxWidth:1100, margin:'0 auto', padding:'40px', width:'100%', flex:1 },
+  empty: { textAlign:'center', padding:'80px 0' },
+  emptyText: { fontSize:18, fontWeight:700, color:'#444', marginBottom:8 },
+  emptySub: { fontSize:14, color:'#aaa' },
+  grid: { display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))', gap:24 },
+  card: { background:'#fff', borderRadius:16, padding:28, boxShadow:'0 2px 16px rgba(0,0,0,0.06)', display:'flex', flexDirection:'column', gap:14, border:'1.5px solid #f5f5f5', transition:'all 0.25s ease', cursor:'pointer' },
+  cardTop: { display:'flex', justifyContent:'space-between', alignItems:'center' },
+  fileIconWrap: { width:52, height:52, background:'#FFF0F2', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center' },
+  viewBadge: { background:'#FFF0F2', color:'#BF0426', fontSize:11, fontWeight:700, padding:'4px 12px', borderRadius:20, border:'1px solid #FADADD' },
+  cardTitle: { fontSize:17, fontWeight:700, color:'#1a1a2e' },
+  cardDesc: { fontSize:13, color:'#888', lineHeight:1.6, flex:1 },
+  openBtn: { padding:'13px', background:'#BF0426', color:'#fff', border:'none', borderRadius:10, cursor:'pointer', fontWeight:700, fontSize:14, fontFamily:"'Syne',sans-serif", transition:'background 0.2s', textAlign:'center' },
+  footer: { textAlign:'center', padding:'20px', fontSize:12, color:'#bbb', display:'flex', justifyContent:'center', alignItems:'center', gap:10, borderTop:'1px solid #f0f0f0', flexWrap:'wrap' },
+};
