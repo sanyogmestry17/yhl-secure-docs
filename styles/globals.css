@@ -24,10 +24,26 @@ body {
 /* Prevent horizontal scroll on all pages */
 html, body { overflow-x: hidden; max-width: 100%; }
 
+/* Prevent long-press save image on iOS */
+img, canvas { -webkit-touch-callout: none; }
+
+/* Prevent tap highlight on buttons/inputs */
+button, input { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+
+/* Mobile logo — hidden on desktop, shown on mobile */
+.mobile-logo-wrap { display: none; text-align: center; margin-bottom: 24px; }
+
 /* Login & Verify — two-panel layout */
 @media (max-width: 768px) {
   .login-left { display: none !important; }
-  .login-right { width: 100% !important; min-width: 0 !important; padding: 32px 20px !important; }
+  .login-right {
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 32px 20px !important;
+    align-items: flex-start !important;
+    padding-top: 40px !important;
+  }
+  .mobile-logo-wrap { display: block; }
 }
 
 /* Dashboard */

@@ -158,19 +158,16 @@ export default function ViewerPage() {
       <Head>
         <title>Viewing Document — YourHappyLife</title>
         <link rel="icon" href="/logo.png" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
       <style>{`
-        *{-webkit-user-select:none!important;user-select:none!important;}
-        canvas{pointer-events:none;display:block;}
+        *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;}
+        canvas{pointer-events:none;display:block;touch-action:none;}
+        img{-webkit-touch-callout:none!important;pointer-events:none;}
         @media print{body{display:none!important;}}
         @keyframes spin{to{transform:rotate(360deg);}}
         @keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
         @keyframes progressBar{from{width:0;}to{width:100%;}}
-        @media(max-width:600px){
-          .viewer-nav{padding:10px 16px!important;}
-          .viewer-area{padding:16px 12px!important;}
-        }
       `}</style>
 
       <div style={s.wrap}>

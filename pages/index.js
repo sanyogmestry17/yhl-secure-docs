@@ -38,10 +38,10 @@ export default function LoginPage() {
       <Head>
         <title>Secure Docs — YourHappyLife</title>
         <link rel="icon" href="/logo.png" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
       <div style={s.page}>
-        {/* Left panel */}
+        {/* Left panel — hidden on mobile */}
         <div className="login-left" style={{ ...s.left, opacity: mounted ? 1 : 0, animation: mounted ? 'slideInLeft 0.7s ease forwards' : 'none' }}>
           <div style={s.leftInner}>
             <div style={{ animation: 'float 4s ease-in-out infinite' }}>
@@ -72,6 +72,11 @@ export default function LoginPage() {
         {/* Right panel */}
         <div className="login-right" style={{ ...s.right, opacity: mounted ? 1 : 0, animation: mounted ? 'slideInRight 0.7s ease forwards' : 'none' }}>
           <div style={s.card}>
+            {/* Logo — only visible on mobile */}
+            <div className="mobile-logo-wrap">
+              <Image src="/logo.png" alt="YourHappyLife" width={130} height={44} style={{ objectFit:'contain' }} priority />
+            </div>
+
             <div style={s.cardHeader}>
               <div style={s.lockIcon}>🔒</div>
               <h2 style={s.h2}>Welcome back</h2>
@@ -117,14 +122,13 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-
     </>
   );
 }
 
 const s = {
   page: { minHeight:'100vh', display:'flex', fontFamily:"'Syne',sans-serif" },
-  left: { flex:1, background:'linear-gradient(160deg, #BF0426 0%, #8C001B 100%)', display:'flex', flexDirection:'column', justifyContent:'center', padding:'60px 56px', className:'login-left' },
+  left: { flex:1, background:'linear-gradient(160deg, #BF0426 0%, #8C001B 100%)', display:'flex', flexDirection:'column', justifyContent:'center', padding:'60px 56px' },
   leftInner: { display:'flex', flexDirection:'column', gap:40, maxWidth:420 },
   tagline: { fontSize:'clamp(28px,3vw,44px)', fontWeight:800, color:'#fff', lineHeight:1.15, marginBottom:16 },
   tagSub: { fontSize:15, color:'rgba(255,255,255,0.75)', lineHeight:1.8 },
@@ -144,9 +148,9 @@ const s = {
   label: { fontSize:11, fontWeight:700, color:'#555', textTransform:'uppercase', letterSpacing:'1px' },
   inputRow: { display:'flex', alignItems:'center', border:'2px solid #FADADD', borderRadius:12, background:'#FFF8F8', overflow:'hidden', transition:'border-color 0.2s' },
   inputIcon: { padding:'0 14px', fontSize:16 },
-  input: { flex:1, padding:'14px 14px 14px 0', border:'none', background:'transparent', fontSize:15, outline:'none', fontFamily:"'Syne',sans-serif", color:'#1a1a2e' },
+  input: { flex:1, padding:'14px 14px 14px 0', border:'none', background:'transparent', fontSize:16, outline:'none', fontFamily:"'Syne',sans-serif", color:'#1a1a2e', touchAction:'manipulation' },
   errBox: { display:'flex', alignItems:'center', gap:8, background:'#FFF0F2', border:'1.5px solid #FADADD', borderRadius:10, padding:'12px 14px', color:'#BF0426', fontSize:13, fontWeight:600 },
-  btn: { width:'100%', padding:16, background:'linear-gradient(135deg, #BF0426, #8C001B)', color:'#fff', border:'none', borderRadius:12, fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:"'Syne',sans-serif", transition:'all 0.2s', boxShadow:'0 4px 16px rgba(191,4,38,0.35)' },
+  btn: { width:'100%', padding:16, background:'linear-gradient(135deg, #BF0426, #8C001B)', color:'#fff', border:'none', borderRadius:12, fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:"'Syne',sans-serif", transition:'all 0.2s', boxShadow:'0 4px 16px rgba(191,4,38,0.35)', touchAction:'manipulation' },
   btnLoading: { opacity:0.8, cursor:'not-allowed' },
   btnSpinner: { width:16, height:16, border:'2px solid rgba(255,255,255,0.3)', borderTop:'2px solid #fff', borderRadius:'50%', display:'inline-block', animation:'spin 0.8s linear infinite' },
   divider: { display:'flex', alignItems:'center', margin:'28px 0 20px', gap:12 },

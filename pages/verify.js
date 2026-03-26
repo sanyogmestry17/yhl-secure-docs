@@ -85,9 +85,10 @@ export default function VerifyPage() {
       <Head>
         <title>Verify OTP — YourHappyLife</title>
         <link rel="icon" href="/logo.png" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
       <div style={s.page}>
+        {/* Left panel — hidden on mobile */}
         <div className="login-left" style={{ ...s.left, opacity: mounted ? 1 : 0, animation: mounted ? 'slideInLeft 0.7s ease forwards' : 'none' }}>
           <div style={s.leftInner}>
             <Image src="/logo.png" alt="YourHappyLife" width={200} height={70} style={{ objectFit:'contain', filter:'brightness(0) invert(1)' }} priority />
@@ -99,15 +100,21 @@ export default function VerifyPage() {
               <span style={{ fontSize:24 }}>💡</span>
               <div>
                 <div style={{ fontSize:13, fontWeight:700, color:'#fff', marginBottom:4 }}>Can't find the email?</div>
-                <div style={{ fontSize:12, color:'rgba(255,255,255,0.7)', lineHeight:1.6 }}>Check your spam or junk folder. The sender is your Gmail SMTP address.</div>
+                <div style={{ fontSize:12, color:'rgba(255,255,255,0.7)', lineHeight:1.6 }}>Check your spam or junk folder.</div>
               </div>
             </div>
             <button onClick={() => router.push('/')} style={s.backBtn}>← Back to login</button>
           </div>
         </div>
 
+        {/* Right panel */}
         <div className="login-right" style={{ ...s.right, opacity: mounted ? 1 : 0, animation: mounted ? 'slideInRight 0.7s ease forwards' : 'none' }}>
           <div style={s.card}>
+            {/* Logo — only visible on mobile */}
+            <div className="mobile-logo-wrap">
+              <Image src="/logo.png" alt="YourHappyLife" width={130} height={44} style={{ objectFit:'contain' }} priority />
+            </div>
+
             {success ? (
               <div style={{ textAlign:'center', animation:'fadeUp 0.5s ease forwards' }}>
                 <div style={{ fontSize:64, marginBottom:16 }}>✅</div>
@@ -128,7 +135,10 @@ export default function VerifyPage() {
                       <input
                         key={i}
                         ref={el => inputs.current[i] = el}
-                        type="text" inputMode="numeric" maxLength={1} value={d}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={1}
+                        value={d}
                         onChange={e => handleChange(i, e.target.value)}
                         onKeyDown={e => handleKeyDown(i, e)}
                         style={{
@@ -187,15 +197,15 @@ const s = {
   tagSub: { fontSize:15, color:'rgba(255,255,255,0.75)', lineHeight:1.8 },
   tipBox: { display:'flex', gap:14, background:'rgba(255,255,255,0.12)', borderRadius:14, padding:'16px 18px', backdropFilter:'blur(8px)' },
   backBtn: { background:'rgba(255,255,255,0.15)', border:'1px solid rgba(255,255,255,0.3)', color:'#fff', padding:'10px 20px', borderRadius:10, cursor:'pointer', fontSize:13, fontWeight:600, fontFamily:"'Syne',sans-serif", width:'fit-content' },
-  right: { width:'480px', minWidth:'320px', background:'#fff', display:'flex', alignItems:'center', justifyContent:'center', padding:'40px 32px' },
+  right: { width:'480px', minWidth:'320px', background:'#fff', display:'flex', alignItems:'center', justifyContent:'center', padding:'40px 32px', overflowY:'auto' },
   card: { width:'100%', maxWidth:400 },
   cardHeader: { textAlign:'center', marginBottom:32 },
   h2: { fontSize:26, fontWeight:800, color:'#1a1a2e', marginBottom:8 },
   sub: { fontSize:13, color:'#888' },
-  otpRow: { display:'flex', gap:10, justifyContent:'center', marginBottom:24 },
-  otpBox: { width:'14%', maxWidth:56, aspectRatio:'1', textAlign:'center', fontSize:24, fontWeight:800, border:'2px solid', borderRadius:12, outline:'none', transition:'all 0.15s', fontFamily:"'Syne',sans-serif", color:'#BF0426' },
+  otpRow: { display:'flex', gap:8, justifyContent:'center', marginBottom:24 },
+  otpBox: { width:46, height:56, textAlign:'center', fontSize:24, fontWeight:800, border:'2px solid', borderRadius:12, outline:'none', transition:'all 0.15s', fontFamily:"'Syne',sans-serif", color:'#BF0426', padding:0, touchAction:'manipulation' },
   errBox: { display:'flex', alignItems:'center', gap:8, background:'#FFF0F2', border:'1.5px solid #FADADD', borderRadius:10, padding:'12px 14px', color:'#BF0426', fontSize:13, fontWeight:600, marginBottom:16 },
-  btn: { width:'100%', padding:16, background:'linear-gradient(135deg, #BF0426, #8C001B)', color:'#fff', border:'none', borderRadius:12, fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:"'Syne',sans-serif", transition:'all 0.2s', boxShadow:'0 4px 16px rgba(191,4,38,0.35)' },
+  btn: { width:'100%', padding:16, background:'linear-gradient(135deg, #BF0426, #8C001B)', color:'#fff', border:'none', borderRadius:12, fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:"'Syne',sans-serif", transition:'all 0.2s', boxShadow:'0 4px 16px rgba(191,4,38,0.35)', touchAction:'manipulation' },
   btnSpinner: { width:16, height:16, border:'2px solid rgba(255,255,255,0.3)', borderTop:'2px solid #fff', borderRadius:'50%', display:'inline-block', animation:'spin 0.8s linear infinite' },
   resendRow: { textAlign:'center', marginTop:24 },
 };
