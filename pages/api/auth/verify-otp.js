@@ -32,11 +32,20 @@ export default async function handler(req, res) {
   const userAgent = req.headers['user-agent'] || 'Unknown';
   const timestamp = new Date().toUTCString();
 
+  let location = 'Unknown';
+  if (ip !== 'Unknown' && ip !== '127.0.0.1') {
+    try {
+      const geoRes = await fetch(`https://ipapi.co/${ip}/json/`);
+      const geo = await geoRes.json();
+      if (geo.city) location = [geo.city, geo.region, geo.country_name].filter(Boolean).join(', ');
+    } catch { /* geolocation unavailable */ }
+  }
+
   const session = await getSession(req, res);
   session.user = { email: normalised, ip, loginTime: timestamp };
   await session.save();
 
-  await sendLoginAlert({ email: normalised, ip, userAgent, timestamp }).catch(console.error);
+  await sendLoginAlert({ email: normalised, ip, location, userAgent, timestamp }).catch(console.error);
 
   return res.status(200).json({ success: true });
 }
