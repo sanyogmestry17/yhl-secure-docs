@@ -18,9 +18,9 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    const { name } = req.body;
+    const { name, parentId } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'Name is required' });
-    const folder = await createFolder(name.trim());
+    const folder = await createFolder(name.trim(), parentId || null);
     return res.status(201).json({ folder });
   }
 
