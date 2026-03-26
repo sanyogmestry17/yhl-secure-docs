@@ -40,7 +40,9 @@ export default function ViewerPage() {
     };
     document.addEventListener('contextmenu', block);
     document.addEventListener('keydown', blockKeys);
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     const devCheck = setInterval(() => {
+      if (isMobile) return;
       const open = window.outerWidth - window.innerWidth > 160 || window.outerHeight - window.innerHeight > 160;
       if (containerRef.current) containerRef.current.style.filter = open ? 'blur(24px)' : 'none';
     }, 800);

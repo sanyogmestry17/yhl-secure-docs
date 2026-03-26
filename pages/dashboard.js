@@ -10,6 +10,7 @@ export default function Dashboard() {
   const router = useRouter();
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     fetch('/api/me').then(r => r.json()).then(d => {
       if (d.error) { router.push('/'); return; }
       setUser(d.user);

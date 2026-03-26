@@ -58,7 +58,7 @@ export default function VerifyPage() {
       }
       setSuccess(true);
       sessionStorage.removeItem('otp_email');
-      setTimeout(() => router.push('/dashboard'), 1000);
+      setTimeout(() => { window.scrollTo(0, 0); router.push('/dashboard'); }, 1000);
     } catch {
       setError('Verification failed. Please try again.');
     } finally {
@@ -145,7 +145,6 @@ export default function VerifyPage() {
                           ...s.otpBox,
                           borderColor: error ? '#BF0426' : d ? '#BF0426' : '#e2e8f0',
                           background: error ? '#FFF0F2' : d ? '#FFF0F2' : '#fff',
-                          transform: d ? 'scale(1.05)' : 'scale(1)',
                         }}
                         autoFocus={i === 0}
                       />
@@ -203,7 +202,7 @@ const s = {
   h2: { fontSize:26, fontWeight:800, color:'#1a1a2e', marginBottom:8 },
   sub: { fontSize:13, color:'#888' },
   otpRow: { display:'flex', gap:8, justifyContent:'center', marginBottom:24 },
-  otpBox: { width:46, height:56, textAlign:'center', fontSize:24, fontWeight:800, border:'2px solid', borderRadius:12, outline:'none', transition:'all 0.15s', fontFamily:"'Syne',sans-serif", color:'#BF0426', padding:0, touchAction:'manipulation' },
+  otpBox: { width:46, height:56, textAlign:'center', lineHeight:'56px', fontSize:24, fontWeight:800, border:'2px solid', borderRadius:12, outline:'none', transition:'border-color 0.15s, background 0.15s', fontFamily:"'Syne',sans-serif", color:'#BF0426', padding:0, touchAction:'manipulation', verticalAlign:'middle' },
   errBox: { display:'flex', alignItems:'center', gap:8, background:'#FFF0F2', border:'1.5px solid #FADADD', borderRadius:10, padding:'12px 14px', color:'#BF0426', fontSize:13, fontWeight:600, marginBottom:16 },
   btn: { width:'100%', padding:16, background:'linear-gradient(135deg, #BF0426, #8C001B)', color:'#fff', border:'none', borderRadius:12, fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:"'Syne',sans-serif", transition:'all 0.2s', boxShadow:'0 4px 16px rgba(191,4,38,0.35)', touchAction:'manipulation' },
   btnSpinner: { width:16, height:16, border:'2px solid rgba(255,255,255,0.3)', borderTop:'2px solid #fff', borderRadius:'50%', display:'inline-block', animation:'spin 0.8s linear infinite' },
