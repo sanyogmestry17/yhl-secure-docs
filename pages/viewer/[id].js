@@ -85,15 +85,25 @@ export default function ViewerPage() {
     container.innerHTML = '';
 
     const scale = window.innerWidth < 600 ? 1.0 : window.innerWidth < 900 ? 1.3 : 1.6;
+    const BATCH_SIZE = 4;
 
+    // Pre-allocate DOM slots in order so pages always appear in sequence
+    const slots = [];
     for (let p = 1; p <= pdf.numPages; p++) {
-      setStatus(`Rendering page ${p} of ${pdf.numPages}…`);
-      setCurrentPage(p);
+      const wrap = document.createElement('div');
+      wrap.style.cssText = `margin:0 auto 24px;width:100%;box-shadow:0 4px 32px rgba(0,0,0,0.15);border-radius:10px;overflow:hidden;background:#f0f0f0;min-height:200px;`;
+      container.appendChild(wrap);
+      slots.push(wrap);
+    }
+
+    let rendered = 0;
+
+    async function renderPage(p) {
       const page = await pdf.getPage(p);
       const vp = page.getViewport({ scale });
+      const wrap = slots[p - 1];
 
-      const wrap = document.createElement('div');
-      wrap.style.cssText = `margin:0 auto 24px;width:100%;max-width:${vp.width}px;box-shadow:0 4px 32px rgba(0,0,0,0.15);border-radius:10px;overflow:hidden;background:#fff;animation:fadeUp 0.4s ease forwards;opacity:0;animation-delay:${(p-1)*0.05}s;`;
+      wrap.style.cssText = `margin:0 auto 24px;width:100%;max-width:${vp.width}px;box-shadow:0 4px 32px rgba(0,0,0,0.15);border-radius:10px;overflow:hidden;background:#fff;animation:fadeUp 0.4s ease forwards;`;
 
       const pageLabel = document.createElement('div');
       pageLabel.style.cssText = `background:#f8f8f8;border-bottom:1px solid #f0f0f0;padding:8px 16px;font-size:11px;color:#aaa;font-family:'Syne',sans-serif;font-weight:600;letter-spacing:1px;`;
@@ -123,8 +133,21 @@ export default function ViewerPage() {
 
       wrap.appendChild(pageLabel);
       wrap.appendChild(canvas);
-      container.appendChild(wrap);
+
+      rendered++;
+      setCurrentPage(rendered);
+      setStatus(`Rendering page ${rendered} of ${pdf.numPages}…`);
     }
+
+    // Render in batches of BATCH_SIZE concurrently
+    for (let p = 1; p <= pdf.numPages; p += BATCH_SIZE) {
+      const batch = [];
+      for (let i = p; i <= Math.min(p + BATCH_SIZE - 1, pdf.numPages); i++) {
+        batch.push(renderPage(i));
+      }
+      await Promise.all(batch);
+    }
+
     setDone(true);
   }
 
@@ -193,7 +216,7 @@ export default function ViewerPage() {
             </div>
           )}
 
-          <div ref={containerRef} style={{ display: done ? 'block' : 'none', width:'100%', maxWidth:900, margin:'0 auto' }} />
+          <div ref={containerRef} style={{ display: 'block', width:'100%', maxWidth:900, margin:'0 auto' }} />
 
           {done && (
             <div style={s.doneFooter}>
