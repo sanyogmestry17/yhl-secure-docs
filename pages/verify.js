@@ -88,7 +88,7 @@ export default function VerifyPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
       <div style={s.page}>
-        <div style={{ ...s.left, opacity: mounted ? 1 : 0, animation: mounted ? 'slideInLeft 0.7s ease forwards' : 'none' }}>
+        <div className="login-left" style={{ ...s.left, opacity: mounted ? 1 : 0, animation: mounted ? 'slideInLeft 0.7s ease forwards' : 'none' }}>
           <div style={s.leftInner}>
             <Image src="/logo.png" alt="YourHappyLife" width={200} height={70} style={{ objectFit:'contain', filter:'brightness(0) invert(1)' }} priority />
             <div>
@@ -106,7 +106,7 @@ export default function VerifyPage() {
           </div>
         </div>
 
-        <div style={{ ...s.right, opacity: mounted ? 1 : 0, animation: mounted ? 'slideInRight 0.7s ease forwards' : 'none' }}>
+        <div className="login-right" style={{ ...s.right, opacity: mounted ? 1 : 0, animation: mounted ? 'slideInRight 0.7s ease forwards' : 'none' }}>
           <div style={s.card}>
             {success ? (
               <div style={{ textAlign:'center', animation:'fadeUp 0.5s ease forwards' }}>

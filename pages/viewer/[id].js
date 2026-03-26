@@ -175,14 +175,14 @@ export default function ViewerPage() {
 
       <div style={s.wrap}>
         {/* Sticky nav */}
-        <nav style={s.nav}>
+        <nav className="viewer-nav" style={s.nav}>
           <div style={s.navL}>
             <button onClick={() => router.push('/dashboard')} style={s.back}>← Back</button>
             <Image src="/logo.png" alt="YourHappyLife" width={110} height={36} style={{ objectFit:'contain' }} />
           </div>
           <div style={s.navR}>
             <div style={s.protectedBadge}>🔒 Protected</div>
-            {user && <div style={s.userBadge}>{user.email}</div>}
+            {user && <div className="viewer-user-badge" style={s.userBadge}>{user.email}</div>}
           </div>
         </nav>
 
@@ -193,7 +193,7 @@ export default function ViewerPage() {
           </div>
         )}
 
-        <div style={s.area}>
+        <div className="viewer-area" style={s.area}>
           {!done && !error && (
             <div style={s.center}>
               <div style={s.spinnerWrap}>

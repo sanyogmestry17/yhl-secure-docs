@@ -34,11 +34,11 @@ export default function Dashboard() {
       </Head>
       <div style={s.wrap}>
         {/* Nav */}
-        <nav style={s.nav}>
+        <nav className="dash-nav" style={s.nav}>
           <Image src="/logo.png" alt="YourHappyLife" width={140} height={48} style={{ objectFit:'contain' }} />
           <div style={s.navR}>
             {user && (
-              <div style={s.userPill}>
+              <div className="dash-user-pill" style={s.userPill}>
                 <div style={s.userDot} />
                 <span style={s.userEmail}>{user.email}</span>
               </div>
@@ -50,7 +50,7 @@ export default function Dashboard() {
         </nav>
 
         {/* Hero */}
-        <div style={s.hero}>
+        <div className="dash-hero" style={s.hero}>
           <div style={s.heroInner}>
             <div style={{ animation: mounted ? 'fadeUp 0.6s ease forwards' : 'none', opacity: mounted ? 1 : 0 }}>
               <div style={s.heroBadge}>🔒 Internal Portal</div>
@@ -68,7 +68,7 @@ export default function Dashboard() {
         </div>
 
         {/* Content */}
-        <main style={s.main}>
+        <main className="dash-main" style={s.main}>
           {pdfs.length === 0 ? (
             <div style={s.empty}>
               <div style={{ fontSize:56, marginBottom:16, animation:'float 3s ease-in-out infinite' }}>📂</div>
@@ -76,7 +76,7 @@ export default function Dashboard() {
               <p style={s.emptySub}>Contact your administrator to add documents.</p>
             </div>
           ) : (
-            <div style={s.grid}>
+            <div className="dash-grid" style={s.grid}>
               {pdfs.map((p, i) => (
                 <div
                   key={p.id}
@@ -124,14 +124,6 @@ export default function Dashboard() {
         </footer>
       </div>
 
-      <style>{`
-        @media (max-width: 600px) {
-          .dash-grid { grid-template-columns: 1fr !important; }
-          .dash-nav { padding: 12px 16px !important; }
-          .dash-hero { padding: 32px 16px !important; }
-          .dash-main { padding: 24px 16px !important; }
-        }
-      `}</style>
     </>
   );
 }

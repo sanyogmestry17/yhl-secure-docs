@@ -42,7 +42,7 @@ export default function LoginPage() {
       </Head>
       <div style={s.page}>
         {/* Left panel */}
-        <div style={{ ...s.left, opacity: mounted ? 1 : 0, animation: mounted ? 'slideInLeft 0.7s ease forwards' : 'none' }}>
+        <div className="login-left" style={{ ...s.left, opacity: mounted ? 1 : 0, animation: mounted ? 'slideInLeft 0.7s ease forwards' : 'none' }}>
           <div style={s.leftInner}>
             <div style={{ animation: 'float 4s ease-in-out infinite' }}>
               <Image src="/logo.png" alt="YourHappyLife" width={200} height={70} style={{ objectFit:'contain', filter:'brightness(0) invert(1)' }} priority />
@@ -70,7 +70,7 @@ export default function LoginPage() {
         </div>
 
         {/* Right panel */}
-        <div style={{ ...s.right, opacity: mounted ? 1 : 0, animation: mounted ? 'slideInRight 0.7s ease forwards' : 'none' }}>
+        <div className="login-right" style={{ ...s.right, opacity: mounted ? 1 : 0, animation: mounted ? 'slideInRight 0.7s ease forwards' : 'none' }}>
           <div style={s.card}>
             <div style={s.cardHeader}>
               <div style={s.lockIcon}>🔒</div>
@@ -118,12 +118,6 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <style>{`
-        @media (max-width: 768px) {
-          .login-left { display: none !important; }
-          .login-right { width: 100% !important; padding: 24px 20px !important; }
-        }
-      `}</style>
     </>
   );
 }

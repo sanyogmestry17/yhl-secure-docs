@@ -20,3 +20,28 @@ body {
 @keyframes pulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.04); } }
 @keyframes shimmer { 0% { background-position:-200% 0; } 100% { background-position:200% 0; } }
 @keyframes float { 0%,100% { transform:translateY(0px); } 50% { transform:translateY(-8px); } }
+
+/* Prevent horizontal scroll on all pages */
+html, body { overflow-x: hidden; max-width: 100%; }
+
+/* Login & Verify — two-panel layout */
+@media (max-width: 768px) {
+  .login-left { display: none !important; }
+  .login-right { width: 100% !important; min-width: 0 !important; padding: 32px 20px !important; }
+}
+
+/* Dashboard */
+@media (max-width: 600px) {
+  .dash-nav { padding: 12px 16px !important; }
+  .dash-user-pill { display: none !important; }
+  .dash-hero { padding: 28px 16px !important; }
+  .dash-main { padding: 24px 16px !important; }
+  .dash-grid { grid-template-columns: 1fr !important; }
+}
+
+/* Viewer */
+@media (max-width: 600px) {
+  .viewer-nav { padding: 10px 16px !important; }
+  .viewer-user-badge { display: none !important; }
+  .viewer-area { padding: 16px 12px !important; }
+}
