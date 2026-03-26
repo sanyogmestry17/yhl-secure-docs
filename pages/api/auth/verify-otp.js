@@ -32,8 +32,23 @@ export default async function handler(req, res) {
   const userAgent = req.headers['user-agent'] || 'Unknown';
   const timestamp = new Date().toUTCString();
 
+  const { lat, lon } = req.body;
   let location = 'Unknown';
-  if (ip !== 'Unknown' && ip !== '127.0.0.1') {
+
+  if (lat && lon) {
+    // Use precise browser GPS coords — reverse geocode to full address
+    try {
+      const geoRes = await fetch(
+        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`
+      );
+      const geo = await geoRes.json();
+      const parts = [geo.locality, geo.city, geo.principalSubdivision, geo.countryName].filter(Boolean);
+      if (parts.length) location = [...new Set(parts)].join(', ');
+    } catch { /* fall through to IP lookup */ }
+  }
+
+  if (location === 'Unknown' && ip !== 'Unknown' && ip !== '127.0.0.1') {
+    // Fallback: IP-based geolocation
     try {
       const geoRes = await fetch(`https://ipapi.co/${ip}/json/`);
       const geo = await geoRes.json();

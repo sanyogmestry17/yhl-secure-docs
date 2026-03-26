@@ -8,9 +8,28 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [mounted, setMounted] = useState(false);
+  const [geoState, setGeoState] = useState('requesting'); // 'requesting' | 'granted' | 'denied'
   const router = useRouter();
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+    if (!navigator.geolocation) {
+      // Browser doesn't support geolocation — allow login anyway
+      setGeoState('granted');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        sessionStorage.setItem('geo_lat', pos.coords.latitude);
+        sessionStorage.setItem('geo_lon', pos.coords.longitude);
+        setGeoState('granted');
+      },
+      () => {
+        setGeoState('denied');
+      },
+      { timeout: 15000, maximumAge: 0 }
+    );
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -77,48 +96,81 @@ export default function LoginPage() {
               <Image src="/logo.png" alt="YourHappyLife" width={130} height={44} style={{ objectFit:'contain' }} priority />
             </div>
 
-            <div style={s.cardHeader}>
-              <div style={s.lockIcon}>🔒</div>
-              <h2 style={s.h2}>Welcome back</h2>
-              <p style={s.sub}>Sign in with your @yourhappylife.com email</p>
-            </div>
-
-            <form onSubmit={handleSubmit} style={s.form}>
-              <div style={s.inputWrap}>
-                <label style={s.label}>Company Email</label>
-                <div style={s.inputRow}>
-                  <span style={s.inputIcon}>✉️</span>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="you@yourhappylife.com"
-                    style={s.input}
-                    required
-                    autoFocus
-                  />
+            {/* Geo requesting */}
+            {geoState === 'requesting' && (
+              <div style={s.geoBox}>
+                <div style={s.geoSpinner} />
+                <div>
+                  <div style={s.geoTitle}>Requesting location access…</div>
+                  <div style={s.geoSub}>Please allow location access in your browser prompt to continue.</div>
                 </div>
               </div>
+            )}
 
-              {error && (
-                <div style={s.errBox}>
-                  <span>⚠️</span>
-                  <span>{error}</span>
+            {/* Geo denied */}
+            {geoState === 'denied' && (
+              <div style={s.deniedBox}>
+                <div style={{ fontSize:40, marginBottom:16 }}>📍</div>
+                <h2 style={s.deniedTitle}>Location access required</h2>
+                <p style={s.deniedSub}>
+                  This portal requires location access for security logging. Please refresh the page and <strong>Allow</strong> when prompted.
+                </p>
+                <button onClick={() => window.location.reload()} style={s.refreshBtn}>
+                  🔄 Refresh & Allow Location
+                </button>
+                <p style={s.deniedHint}>
+                  If the prompt doesn't appear, tap the lock icon in your browser's address bar and enable Location.
+                </p>
+              </div>
+            )}
+
+            {/* Login form — shown only when geo is granted */}
+            {geoState === 'granted' && (
+              <>
+                <div style={s.cardHeader}>
+                  <div style={s.lockIcon}>🔒</div>
+                  <h2 style={s.h2}>Welcome back</h2>
+                  <p style={s.sub}>Sign in with your @yourhappylife.com email</p>
                 </div>
-              )}
 
-              <button type="submit" style={{ ...s.btn, ...(loading ? s.btnLoading : {}) }} disabled={loading}>
-                {loading ? (
-                  <span style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:10 }}>
-                    <span style={s.btnSpinner} />
-                    Sending OTP…
-                  </span>
-                ) : 'Send One-Time Password →'}
-              </button>
-            </form>
+                <form onSubmit={handleSubmit} style={s.form}>
+                  <div style={s.inputWrap}>
+                    <label style={s.label}>Company Email</label>
+                    <div style={s.inputRow}>
+                      <span style={s.inputIcon}>✉️</span>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        placeholder="you@yourhappylife.com"
+                        style={s.input}
+                        required
+                        autoFocus
+                      />
+                    </div>
+                  </div>
 
-            <div style={s.divider}><span style={s.dividerText}>Secure Access</span></div>
-            <p style={s.note}>Only @yourhappylife.com addresses are permitted. A 6-digit code will be sent to your inbox.</p>
+                  {error && (
+                    <div style={s.errBox}>
+                      <span>⚠️</span>
+                      <span>{error}</span>
+                    </div>
+                  )}
+
+                  <button type="submit" style={{ ...s.btn, ...(loading ? s.btnLoading : {}) }} disabled={loading}>
+                    {loading ? (
+                      <span style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:10 }}>
+                        <span style={s.btnSpinner} />
+                        Sending OTP…
+                      </span>
+                    ) : 'Send One-Time Password →'}
+                  </button>
+                </form>
+
+                <div style={s.divider}><span style={s.dividerText}>Secure Access</span></div>
+                <p style={s.note}>Only @yourhappylife.com addresses are permitted. A 6-digit code will be sent to your inbox.</p>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -156,4 +208,14 @@ const s = {
   divider: { display:'flex', alignItems:'center', margin:'28px 0 20px', gap:12 },
   dividerText: { fontSize:11, color:'#ccc', fontWeight:600, textTransform:'uppercase', letterSpacing:'1px', whiteSpace:'nowrap', padding:'0 12px', border:'1px solid #f0f0f0', borderRadius:20 },
   note: { fontSize:11, color:'#bbb', textAlign:'center', lineHeight:1.7 },
+  // Geo states
+  geoBox: { display:'flex', alignItems:'flex-start', gap:16, background:'#FFF8F8', border:'1.5px solid #FADADD', borderRadius:14, padding:'20px 18px' },
+  geoSpinner: { width:22, height:22, border:'2.5px solid #FADADD', borderTop:'2.5px solid #BF0426', borderRadius:'50%', flexShrink:0, animation:'spin 0.8s linear infinite', marginTop:2 },
+  geoTitle: { fontSize:14, fontWeight:700, color:'#BF0426', marginBottom:4 },
+  geoSub: { fontSize:12, color:'#888', lineHeight:1.6 },
+  deniedBox: { textAlign:'center', padding:'8px 0' },
+  deniedTitle: { fontSize:22, fontWeight:800, color:'#1a1a2e', marginBottom:12 },
+  deniedSub: { fontSize:14, color:'#555', lineHeight:1.7, marginBottom:24 },
+  refreshBtn: { width:'100%', padding:'14px', background:'linear-gradient(135deg, #BF0426, #8C001B)', color:'#fff', border:'none', borderRadius:12, fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:"'Syne',sans-serif", boxShadow:'0 4px 16px rgba(191,4,38,0.35)', marginBottom:16, touchAction:'manipulation' },
+  deniedHint: { fontSize:11, color:'#bbb', lineHeight:1.7 },
 };

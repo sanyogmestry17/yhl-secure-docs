@@ -47,7 +47,12 @@ export default function VerifyPage() {
       const res = await fetch('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp: code }),
+        body: JSON.stringify({
+          email,
+          otp: code,
+          lat: sessionStorage.getItem('geo_lat'),
+          lon: sessionStorage.getItem('geo_lon'),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
