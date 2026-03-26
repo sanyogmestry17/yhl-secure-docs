@@ -22,7 +22,7 @@ export default async function handler(req, res) {
   }
 
   const otp = generate6DigitOTP();
-  setOTP(normalised, otp);
+  await setOTP(normalised, otp);
 
   try {
     await sendOTPEmail(normalised, otp);
