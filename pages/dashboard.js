@@ -5,8 +5,11 @@ import Image from 'next/image';
 
 export default function Dashboard() {
   const [pdfs, setPdfs] = useState([]);
+  const [folders, setFolders] = useState([]);
   const [user, setUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [activeFolder, setActiveFolder] = useState(null); // null = all docs
   const router = useRouter();
 
   useEffect(() => {
@@ -14,10 +17,12 @@ export default function Dashboard() {
     fetch('/api/me').then(r => r.json()).then(d => {
       if (d.error) { router.push('/'); return; }
       setUser(d.user);
+      setIsAdmin(!!d.isAdmin);
       setMounted(true);
     });
     fetch('/api/pdf/list').then(r => r.json()).then(d => {
       if (d.pdfs) setPdfs(d.pdfs);
+      if (d.folders) setFolders(d.folders);
     });
   }, []);
 
@@ -25,6 +30,15 @@ export default function Dashboard() {
     await fetch('/api/logout', { method: 'POST' });
     router.push('/');
   };
+
+  // Filter PDFs based on active folder
+  const visiblePdfs = activeFolder === null
+    ? pdfs
+    : activeFolder === '__none__'
+    ? pdfs.filter(p => !p.folderId)
+    : pdfs.filter(p => p.folderId === activeFolder);
+
+  const hasUncategorised = pdfs.some(p => !p.folderId);
 
   return (
     <>
@@ -43,6 +57,11 @@ export default function Dashboard() {
                 <div style={s.userDot} />
                 <span style={s.userEmail}>{user.email}</span>
               </div>
+            )}
+            {isAdmin && (
+              <button onClick={() => router.push('/admin')} style={s.adminBtn}>
+                ⚙️ Admin
+              </button>
             )}
             <button onClick={logout} style={s.logoutBtn}>
               Sign out
@@ -70,20 +89,44 @@ export default function Dashboard() {
 
         {/* Content */}
         <main className="dash-main" style={s.main}>
-          {pdfs.length === 0 ? (
+
+          {/* Folder filter bar */}
+          {folders.length > 0 && (
+            <div style={s.folderBar}>
+              <button
+                style={{ ...s.folderChip, ...(activeFolder === null ? s.folderChipActive : {}) }}
+                onClick={() => setActiveFolder(null)}
+              >All</button>
+              {hasUncategorised && (
+                <button
+                  style={{ ...s.folderChip, ...(activeFolder === '__none__' ? s.folderChipActive : {}) }}
+                  onClick={() => setActiveFolder('__none__')}
+                >📂 Uncategorised</button>
+              )}
+              {folders.map(f => (
+                <button
+                  key={f.id}
+                  style={{ ...s.folderChip, ...(activeFolder === f.id ? s.folderChipActive : {}) }}
+                  onClick={() => setActiveFolder(f.id)}
+                >📁 {f.name}</button>
+              ))}
+            </div>
+          )}
+
+          {visiblePdfs.length === 0 ? (
             <div style={s.empty}>
               <div style={{ fontSize:56, marginBottom:16, animation:'float 3s ease-in-out infinite' }}>📂</div>
-              <p style={s.emptyText}>No documents available yet.</p>
-              <p style={s.emptySub}>Contact your administrator to add documents.</p>
+              <p style={s.emptyText}>{pdfs.length === 0 ? 'No documents available yet.' : 'No documents in this folder.'}</p>
+              <p style={s.emptySub}>{pdfs.length === 0 ? 'Contact your administrator to add documents.' : 'Select a different folder above.'}</p>
             </div>
           ) : (
             <div className="dash-grid" style={s.grid}>
-              {pdfs.map((p, i) => (
+              {visiblePdfs.map((p, i) => (
                 <div
                   key={p.id}
                   style={{
                     ...s.card,
-                    animation: mounted ? `fadeUp 0.5s ${0.1 + i * 0.1}s ease forwards` : 'none',
+                    animation: mounted ? `fadeUp 0.5s ${0.1 + i * 0.08}s ease forwards` : 'none',
                     opacity: 0,
                   }}
                   onMouseEnter={e => {
@@ -101,8 +144,10 @@ export default function Dashboard() {
                     </div>
                     <span style={s.viewBadge}>View only</span>
                   </div>
-                  <h3 style={s.cardTitle}>{p.title}</h3>
-                  <p style={s.cardDesc}>{p.description}</p>
+                  <h3 style={s.cardTitle}>{p.title || p.name}</h3>
+                  {p.folderId && folders.length > 0 && (
+                    <p style={s.cardFolder}>📁 {folders.find(f => f.id === p.folderId)?.name}</p>
+                  )}
                   <button
                     onClick={() => router.push(`/viewer/${p.id}`)}
                     style={s.openBtn}
@@ -124,7 +169,6 @@ export default function Dashboard() {
           <span>🔒 Secure Portal</span>
         </footer>
       </div>
-
     </>
   );
 }
@@ -132,10 +176,11 @@ export default function Dashboard() {
 const s = {
   wrap: { minHeight:'100vh', background:'#f7f7f7', fontFamily:"'Syne',sans-serif", display:'flex', flexDirection:'column' },
   nav: { display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 40px', background:'#fff', borderBottom:'2px solid #FFF0F2', position:'sticky', top:0, zIndex:100, boxShadow:'0 2px 12px rgba(0,0,0,0.04)' },
-  navR: { display:'flex', alignItems:'center', gap:16 },
+  navR: { display:'flex', alignItems:'center', gap:12 },
   userPill: { display:'flex', alignItems:'center', gap:8, background:'#FFF0F2', border:'1.5px solid #FADADD', borderRadius:20, padding:'6px 14px' },
   userDot: { width:8, height:8, borderRadius:'50%', background:'#22c55e', flexShrink:0 },
   userEmail: { color:'#BF0426', fontSize:12, fontWeight:700 },
+  adminBtn: { padding:'8px 16px', background:'#1a1a2e', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:700, fontFamily:"'Syne',sans-serif" },
   logoutBtn: { padding:'8px 20px', background:'#BF0426', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:700, fontFamily:"'Syne',sans-serif", transition:'background 0.2s' },
   hero: { background:'linear-gradient(135deg, #BF0426 0%, #8C001B 100%)', padding:'48px 40px' },
   heroInner: { maxWidth:1060, margin:'0 auto', display:'flex', flexDirection:'column', gap:16 },
@@ -145,6 +190,9 @@ const s = {
   loginInfo: { display:'flex', alignItems:'center', gap:12, fontSize:12, color:'rgba(255,255,255,0.6)', flexWrap:'wrap' },
   dot: { color:'rgba(255,255,255,0.3)' },
   main: { maxWidth:1100, margin:'0 auto', padding:'40px', width:'100%', flex:1 },
+  folderBar: { display:'flex', gap:8, marginBottom:28, flexWrap:'wrap' },
+  folderChip: { padding:'8px 16px', borderRadius:20, border:'1.5px solid #e0e0e0', background:'#fff', color:'#666', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:"'Syne',sans-serif", transition:'all 0.2s', whiteSpace:'nowrap' },
+  folderChipActive: { background:'#BF0426', color:'#fff', border:'1.5px solid #BF0426' },
   empty: { textAlign:'center', padding:'80px 0' },
   emptyText: { fontSize:18, fontWeight:700, color:'#444', marginBottom:8 },
   emptySub: { fontSize:14, color:'#aaa' },
@@ -154,7 +202,7 @@ const s = {
   fileIconWrap: { width:52, height:52, background:'#FFF0F2', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center' },
   viewBadge: { background:'#FFF0F2', color:'#BF0426', fontSize:11, fontWeight:700, padding:'4px 12px', borderRadius:20, border:'1px solid #FADADD' },
   cardTitle: { fontSize:17, fontWeight:700, color:'#1a1a2e' },
-  cardDesc: { fontSize:13, color:'#888', lineHeight:1.6, flex:1 },
+  cardFolder: { fontSize:12, color:'#aaa', marginTop:-8 },
   openBtn: { padding:'13px', background:'#BF0426', color:'#fff', border:'none', borderRadius:10, cursor:'pointer', fontWeight:700, fontSize:14, fontFamily:"'Syne',sans-serif", transition:'background 0.2s', textAlign:'center' },
   footer: { textAlign:'center', padding:'20px', fontSize:12, color:'#bbb', display:'flex', justifyContent:'center', alignItems:'center', gap:10, borderTop:'1px solid #f0f0f0', flexWrap:'wrap' },
 };

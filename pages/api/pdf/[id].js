@@ -7,28 +7,11 @@ import fs from 'fs';
 export default async function handler(req, res) {
   try {
     const session = await getIronSession(req, res, sessionOptions);
-    
-    if (!session || !session.user) {
-      console.log('[pdf api] No session found. Cookies:', req.headers.cookie);
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
+    if (!session?.user) return res.status(401).json({ error: 'Unauthorized' });
 
     const { id } = req.query;
-    const pdf = getPDF(id);
-    if (!pdf) {
-      console.log('[pdf api] PDF not found for ID:', id);
-      return res.status(404).json({ error: 'Document not found' });
-    }
-
-    const filePath = path.join(process.cwd(), 'private', 'pdfs', pdf.filename);
-    if (!fs.existsSync(filePath)) {
-      console.log('[pdf api] File not found at:', filePath);
-      return res.status(404).json({ error: 'File not found on disk' });
-    }
-
-    const fileBuffer = fs.readFileSync(filePath);
-    
-    console.log('[pdf api] Serving PDF, size:', fileBuffer.length, 'bytes');
+    const pdf = await getPDF(id);
+    if (!pdf) return res.status(404).json({ error: 'Document not found' });
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'inline');
@@ -36,7 +19,17 @@ export default async function handler(req, res) {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('X-Content-Type-Options', 'nosniff');
 
-    return res.send(fileBuffer);
+    if (pdf.source === 'blob') {
+      const blobRes = await fetch(pdf.blobUrl);
+      if (!blobRes.ok) return res.status(502).json({ error: 'Failed to fetch document' });
+      const buffer = Buffer.from(await blobRes.arrayBuffer());
+      return res.send(buffer);
+    }
+
+    // Filesystem
+    const filePath = path.join(process.cwd(), 'private', 'pdfs', pdf.filename);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File not found on disk' });
+    return res.send(fs.readFileSync(filePath));
   } catch (err) {
     console.error('[pdf api] Error:', err);
     return res.status(500).json({ error: err.message });

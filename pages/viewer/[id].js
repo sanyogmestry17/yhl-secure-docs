@@ -177,10 +177,10 @@ export default function ViewerPage() {
         <nav className="viewer-nav" style={s.nav}>
           <div style={s.navL}>
             <button onClick={() => router.push('/dashboard')} style={s.back}>← Back</button>
-            <Image src="/logo.png" alt="YourHappyLife" width={110} height={36} style={{ objectFit:'contain' }} />
+            <Image className="viewer-logo" src="/logo.png" alt="YourHappyLife" width={110} height={36} style={{ objectFit:'contain' }} />
           </div>
           <div style={s.navR}>
-            <div style={s.protectedBadge}>🔒 Protected</div>
+            <div className="viewer-protected-badge" style={s.protectedBadge}>🔒 Protected</div>
             {user && <div className="viewer-user-badge" style={s.userBadge}>{user.email}</div>}
           </div>
         </nav>

@@ -57,7 +57,9 @@ button, input { -webkit-tap-highlight-color: transparent; touch-action: manipula
 
 /* Viewer */
 @media (max-width: 600px) {
-  .viewer-nav { padding: 10px 16px !important; }
+  .viewer-nav { padding: 10px 16px !important; position: relative !important; }
+  .viewer-logo { position: absolute !important; left: 50% !important; transform: translateX(-50%) !important; pointer-events: none; }
+  .viewer-protected-badge { display: none !important; }
   .viewer-user-badge { display: none !important; }
   .viewer-area { padding: 16px 12px !important; }
 }
