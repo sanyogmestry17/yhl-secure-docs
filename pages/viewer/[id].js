@@ -126,8 +126,8 @@ export default function ViewerPage() {
       ctx.translate(vp.width / 2, vp.height / 2);
       ctx.rotate(-35 * Math.PI / 180);
       const wm = `CONFIDENTIAL • ${user.email}`;
-      for (let y = -vp.height; y < vp.height; y += 110)
-        for (let x = -vp.width; x < vp.width; x += 380)
+      for (let y = -vp.height; y < vp.height; y += 180)
+        for (let x = -vp.width; x < vp.width; x += 520)
           ctx.fillText(wm, x, y);
       ctx.restore();
 
