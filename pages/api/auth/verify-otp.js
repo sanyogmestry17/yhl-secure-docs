@@ -36,7 +36,7 @@ export default async function handler(req, res) {
   session.user = { email: normalised, ip, loginTime: timestamp };
   await session.save();
 
-  sendLoginAlert({ email: normalised, ip, userAgent, timestamp }).catch(console.error);
+  await sendLoginAlert({ email: normalised, ip, userAgent, timestamp }).catch(console.error);
 
   return res.status(200).json({ success: true });
 }
