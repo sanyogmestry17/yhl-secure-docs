@@ -149,7 +149,12 @@ export default function AdminPage() {
           fileName: uploadFile.name,
         }),
       });
-      const d = await r.json();
+      let d;
+      try {
+        d = await r.json();
+      } catch (parseErr) {
+        throw new Error('Server returned invalid JSON response');
+      }
       if (!r.ok) throw new Error(d.error || 'Upload failed');
       setShowUpload(false);
       await loadData();
@@ -432,7 +437,7 @@ export default function AdminPage() {
             <label style={s.label}>PDF File</label>
             <div style={{ ...s.dropZone, ...(uploadFile ? s.dropZoneActive : {}) }} onClick={() => fileRef.current?.click()}>
               {uploadFile
-                ? <span style={{ color:'#BF0426', fontWeight:600 }}>📄 {uploadFile.name} ({(uploadFile.size/1024/1024).toFixed(1)} MB)</span>
+                ? <span style={{ color:'#BF0426', fontWeight:500 }}>📄 {uploadFile.name} ({(uploadFile.size/1024/1024).toFixed(1)} MB)</span>
                 : <span style={{ color:'#aaa' }}>Click to select a PDF (max 50 MB)</span>
               }
               <input ref={fileRef} type="file" accept="application/pdf" style={{ display:'none' }}
@@ -452,7 +457,7 @@ export default function AdminPage() {
               {renderFolderOptions()}
             </select>
 
-            {uploadProgress && <p style={{ color:'#BF0426', fontSize:13, fontWeight:600, margin:'4px 0' }}>⏳ {uploadProgress}</p>}
+            {uploadProgress && <p style={{ color:'#BF0426', fontSize:13, fontWeight:500, margin:'4px 0' }}>⏳ {uploadProgress}</p>}
 
             <div style={{ display:'flex', gap:12, marginTop:16 }}>
               <button
