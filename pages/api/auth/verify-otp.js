@@ -36,14 +36,24 @@ export default async function handler(req, res) {
   let location = 'Unknown';
 
   if (lat && lon) {
-    // Use precise browser GPS coords — reverse geocode to full address
+    // Use Nominatim (OpenStreetMap) for neighbourhood/area-level accuracy
     try {
       const geoRes = await fetch(
-        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=16&addressdetails=1`,
+        { headers: { 'User-Agent': 'YHL-SecureDocs/1.0' } }
       );
       const geo = await geoRes.json();
-      const parts = [geo.locality, geo.city, geo.principalSubdivision, geo.countryName].filter(Boolean);
-      if (parts.length) location = [...new Set(parts)].join(', ');
+      if (geo.address) {
+        const a = geo.address;
+        const parts = [
+          a.neighbourhood || a.quarter || a.suburb,
+          a.city_district,
+          a.city || a.town || a.village || a.county,
+          a.state,
+          a.country,
+        ].filter(Boolean);
+        if (parts.length) location = [...new Set(parts)].join(', ');
+      }
     } catch { /* fall through to IP lookup */ }
   }
 
