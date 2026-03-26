@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   }
 
   const normalised = email.toLowerCase().trim();
-  const result = verifyOTP(normalised, otp);
+  const result = await verifyOTP(normalised, otp);
 
   if (!result.valid) {
     return res.status(401).json({ error: result.reason });
