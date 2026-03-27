@@ -4,6 +4,42 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Image from 'next/image';
 
+function AdminSkeleton() {
+  return (
+    <div>
+      <div style={{ marginBottom: 28 }}>
+        <div className="skeleton" style={{ height: 36, width: '55%', maxWidth: 280, marginBottom: 10, borderRadius: 6 }} />
+        <div className="skeleton" style={{ height: 14, width: 220, borderRadius: 4 }} />
+      </div>
+      <div className="skeleton" style={{ height: 44, marginBottom: 28, borderRadius: 10 }} />
+      <div style={{ display: 'flex', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
+        <div className="skeleton" style={{ flex: 1, minWidth: 160, height: 44, borderRadius: 8 }} />
+        <div className="skeleton" style={{ width: 140, height: 44, borderRadius: 8 }} />
+        <div className="skeleton" style={{ width: 130, height: 44, borderRadius: 8 }} />
+      </div>
+      <div className="skeleton" style={{ height: 13, width: 110, marginBottom: 12, borderRadius: 4 }} />
+      <div style={{ background: '#fff', borderRadius: 14, border: '1.5px solid #f0f0f0', overflow: 'hidden', marginBottom: 28 }}>
+        {[1, 2].map(i => (
+          <div key={i} style={{ padding: '16px 20px', borderBottom: '1px solid #f8f8f8', display: 'flex', gap: 12, alignItems: 'center' }}>
+            <div className="skeleton" style={{ flex: 1, height: 20, borderRadius: 6 }} />
+            <div className="skeleton" style={{ width: 160, height: 32, borderRadius: 6 }} />
+          </div>
+        ))}
+      </div>
+      <div className="skeleton" style={{ height: 13, width: 130, marginBottom: 12, borderRadius: 4 }} />
+      <div style={{ background: '#fff', borderRadius: 14, border: '1.5px solid #f0f0f0', overflow: 'hidden' }}>
+        {[1, 2, 3].map(i => (
+          <div key={i} style={{ padding: '16px 20px', borderBottom: '1px solid #f8f8f8', display: 'flex', gap: 12, alignItems: 'center' }}>
+            <div className="skeleton" style={{ flex: 1, height: 20, borderRadius: 6 }} />
+            <div className="skeleton" style={{ width: 56, height: 24, borderRadius: 12 }} />
+            <div className="skeleton" style={{ width: 130, height: 32, borderRadius: 6 }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -12,8 +48,8 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
 
   // Folder navigation
-  const [currentFolderId, setCurrentFolderId] = useState(null); // null = root
-  const [folderPath, setFolderPath] = useState([]); // [{id, name}] trail
+  const [currentFolderId, setCurrentFolderId] = useState(null);
+  const [folderPath, setFolderPath] = useState([]);
 
   // Folder UI
   const [newFolderName, setNewFolderName] = useState('');
@@ -52,7 +88,6 @@ export default function AdminPage() {
     setLoading(false);
   }
 
-  // Current view: subfolders and docs at this level
   const subfolders = folders.filter(f => (f.parentId || null) === currentFolderId);
   const folderDocs = pdfs.filter(p => (p.folderId || null) === currentFolderId);
 
@@ -79,13 +114,8 @@ export default function AdminPage() {
     setRenamingPdf(null);
   }
 
-  // ─── Folder actions ────────────────────────────────────────────────────────
-
   async function handleCreateFolder() {
-    if (!newFolderName.trim()) {
-      setFolderNameError('Folder name cannot be empty');
-      return;
-    }
+    if (!newFolderName.trim()) { setFolderNameError('Folder name cannot be empty'); return; }
     setFolderNameError('');
     setFolderBusy(true);
     const r = await fetch('/api/admin/folders', {
@@ -93,18 +123,12 @@ export default function AdminPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: newFolderName.trim(), parentId: currentFolderId }),
     });
-    if (r.ok) {
-      setNewFolderName('');
-      await loadData();
-    }
+    if (r.ok) { setNewFolderName(''); await loadData(); }
     setFolderBusy(false);
   }
 
   async function handleRenameFolder() {
-    if (!folderRenameVal.trim()) {
-      setFolderRenameError('Folder name cannot be empty');
-      return;
-    }
+    if (!folderRenameVal.trim()) { setFolderRenameError('Folder name cannot be empty'); return; }
     setFolderRenameError('');
     setFolderBusy(true);
     await fetch(`/api/admin/folders/${renamingFolder.id}`, {
@@ -113,7 +137,6 @@ export default function AdminPage() {
       body: JSON.stringify({ name: folderRenameVal.trim() }),
     });
     setRenamingFolder(null);
-    // Keep breadcrumb in sync if the renamed folder is in the current path
     setFolderPath(prev => prev.map(f => f.id === renamingFolder.id ? { ...f, name: folderRenameVal.trim() } : f));
     await loadData();
     setFolderBusy(false);
@@ -124,8 +147,6 @@ export default function AdminPage() {
     await fetch(`/api/admin/folders/${id}`, { method: 'DELETE' });
     await loadData();
   }
-
-  // ─── PDF actions ──────────────────────────────────────────────────────────
 
   function openUpload() {
     setUploadFolderId(currentFolderId || '');
@@ -139,13 +160,10 @@ export default function AdminPage() {
     setUploading(true);
     setUploadProgress('Uploading…');
     try {
-      // Upload directly from browser to Vercel Blob CDN — no serverless body size limit
       const blob = await upload(uploadFile.name, uploadFile, {
         access: 'private',
         handleUploadUrl: '/api/admin/blob-token',
       });
-
-      // Save metadata to Redis
       const r = await fetch('/api/admin/pdfs/save-meta', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -176,12 +194,10 @@ export default function AdminPage() {
       return;
     }
     setPdfBusy(true);
-
     let newFolderId;
     if (pdfMoveFolderId === 'KEEP') newFolderId = renamingPdf.folderId;
     else if (pdfMoveFolderId === '__none__') newFolderId = null;
     else newFolderId = pdfMoveFolderId;
-
     const r = await fetch(`/api/admin/pdfs/${renamingPdf.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -196,10 +212,7 @@ export default function AdminPage() {
 
   async function handleDeletePdf(id, name, source) {
     if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
-    if (source === 'filesystem') {
-      alert('Local files can only be deleted from the server directly.');
-      return;
-    }
+    if (source === 'filesystem') { alert('Local files can only be deleted from the server directly.'); return; }
     await fetch(`/api/admin/pdfs/${id}`, { method: 'DELETE' });
     await loadData();
   }
@@ -209,7 +222,6 @@ export default function AdminPage() {
     return folders.find(f => f.id === id)?.name || '—';
   }
 
-  // Flatten all folders for select dropdowns
   function renderFolderOptions(parentId = null, depth = 0) {
     return folders
       .filter(f => (f.parentId || null) === parentId)
@@ -217,17 +229,6 @@ export default function AdminPage() {
         <option key={f.id} value={f.id}>{'\u00A0'.repeat(depth * 3)}📁 {f.name}</option>,
         ...renderFolderOptions(f.id, depth + 1),
       ]);
-  }
-
-  if (loading) {
-    return (
-      <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Syne',sans-serif", background:'#f7f7f7' }}>
-        <div style={{ textAlign:'center' }}>
-          <div style={{ fontSize:48, marginBottom:16 }}>⚙️</div>
-          <p style={{ color:'#BF0426', fontWeight:700 }}>Loading admin panel…</p>
-        </div>
-      </div>
-    );
   }
 
   const currentFolderName = folderPath.length > 0 ? folderPath[folderPath.length - 1].name : 'Root';
@@ -242,161 +243,170 @@ export default function AdminPage() {
       <div style={s.wrap}>
 
         {/* Nav */}
-        <nav style={s.nav}>
+        <nav className="admin-nav" style={s.nav}>
           <div style={s.navL}>
-            <Image src="/logo.png" alt="YourHappyLife" width={130} height={44} style={{ objectFit:'contain' }} />
+            <Image src="/logo.png" alt="YourHappyLife" width={120} height={40} style={{ objectFit:'contain' }} />
             <span style={s.adminBadge}>Admin Panel</span>
           </div>
           <button onClick={() => router.push('/dashboard')} style={s.backBtn}>← Dashboard</button>
         </nav>
 
-        <div style={s.content}>
-          <h1 style={s.h1}>Document Management</h1>
-          <p style={s.sub}>Logged in as {user?.email}.</p>
+        <div className="admin-content" style={s.content}>
+          {loading ? (
+            <AdminSkeleton />
+          ) : (
+            <>
+              <h1 style={s.h1}>Document Management</h1>
+              <p style={s.sub}>Logged in as {user?.email}.</p>
 
-          {/* Breadcrumb */}
-          <div style={s.breadcrumb}>
-            <button style={{ ...s.breadBtn, ...(folderPath.length === 0 ? s.breadBtnActive : {}) }} onClick={() => navigateToBreadcrumb(-1)}>
-              🏠 Root
-            </button>
-            {folderPath.map((f, i) => (
-              <span key={f.id} style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
-                <span style={s.breadSep}>›</span>
-                <button
-                  style={{ ...s.breadBtn, ...(i === folderPath.length - 1 ? s.breadBtnActive : {}) }}
-                  onClick={() => navigateToBreadcrumb(i)}
-                >{f.name}</button>
-              </span>
-            ))}
-          </div>
-
-          {/* ─── Action Bar (always visible) ─── */}
-          <div style={s.actionBar}>
-            <div style={{ flex:1, minWidth:180 }}>
-              <input
-                style={{ ...s.input, ...(folderNameError ? s.inputError : {}) }}
-                placeholder={currentFolderId ? `New subfolder in "${currentFolderName}"…` : 'New folder name…'}
-                value={newFolderName}
-                onChange={e => { setNewFolderName(e.target.value); if (folderNameError) setFolderNameError(''); }}
-                onKeyDown={e => e.key === 'Enter' && handleCreateFolder()}
-              />
-              {folderNameError && <p style={s.errorMsg}>⚠ {folderNameError}</p>}
-            </div>
-            <button style={s.secondaryBtn} onClick={handleCreateFolder} disabled={folderBusy}>
-              + {currentFolderId ? 'Subfolder' : 'Create Folder'}
-            </button>
-            <button style={s.primaryBtn} onClick={openUpload}>⬆ Upload PDF</button>
-          </div>
-
-          {/* ─── Folders ─── */}
-          {subfolders.length > 0 && (
-            <div style={{ marginBottom:24 }}>
-              <p style={s.sectionLabel}>📁 Folders ({subfolders.length})</p>
-              <div style={s.table}>
-                <div style={s.thead}>
-                  <span style={{ flex:1 }}>Folder Name</span>
-                  <span style={{ width:240, textAlign:'right' }}>Actions</span>
-                </div>
-                {subfolders.map(f => (
-                  <div key={f.id} style={s.trow}>
-                    {renamingFolder?.id === f.id ? (
-                      <div style={{ flex:1, display:'flex', flexDirection:'column', gap:4 }}>
-                        <input
-                          style={{ ...s.input, ...(folderRenameError ? s.inputError : {}) }}
-                          value={folderRenameVal}
-                          onChange={e => { setFolderRenameVal(e.target.value); if (folderRenameError) setFolderRenameError(''); }}
-                          onKeyDown={e => { if (e.key === 'Enter') handleRenameFolder(); if (e.key === 'Escape') setRenamingFolder(null); }}
-                          autoFocus
-                        />
-                        {folderRenameError && <p style={s.errorMsg}>⚠ {folderRenameError}</p>}
-                      </div>
-                    ) : (
-                      <button style={s.folderNameBtn} onClick={() => navigateInto(f)}>
-                        📁 {f.name}
-                        <span style={s.enterHint}>Enter →</span>
-                      </button>
-                    )}
-                    <div style={s.actions}>
-                      {renamingFolder?.id === f.id ? (
-                        <>
-                          <button style={s.saveBtn} onClick={handleRenameFolder} disabled={folderBusy}>Save</button>
-                          <button style={s.cancelBtn} onClick={() => { setRenamingFolder(null); setFolderRenameError(''); }}>Cancel</button>
-                        </>
-                      ) : (
-                        <>
-                          <button style={s.editBtn} onClick={() => { setRenamingFolder(f); setFolderRenameVal(f.name); setFolderRenameError(''); }}>Rename</button>
-                          <button style={s.deleteBtn} onClick={() => handleDeleteFolder(f.id, f.name)}>Delete</button>
-                        </>
-                      )}
-                    </div>
-                  </div>
+              {/* Breadcrumb */}
+              <div style={s.breadcrumb}>
+                <button style={{ ...s.breadBtn, ...(folderPath.length === 0 ? s.breadBtnActive : {}) }} onClick={() => navigateToBreadcrumb(-1)}>
+                  🏠 Root
+                </button>
+                {folderPath.map((f, i) => (
+                  <span key={f.id} style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                    <span style={s.breadSep}>›</span>
+                    <button
+                      style={{ ...s.breadBtn, ...(i === folderPath.length - 1 ? s.breadBtnActive : {}) }}
+                      onClick={() => navigateToBreadcrumb(i)}
+                    >{f.name}</button>
+                  </span>
                 ))}
               </div>
-            </div>
-          )}
 
-          {/* ─── Documents ─── */}
-          <div>
-            <p style={s.sectionLabel}>📄 Documents ({folderDocs.length})</p>
-            {folderDocs.length === 0 ? (
-              <div style={s.empty}>No documents in {currentFolderId ? `"${currentFolderName}"` : 'Root'}. Upload one above.</div>
-            ) : (
-              <div style={s.table}>
-                <div style={s.thead}>
-                  <span style={{ flex:1 }}>Document Name</span>
-                  <span style={{ width:80 }}>Source</span>
-                  <span style={{ width:200, textAlign:'right' }}>Actions</span>
+              {/* ─── Action Bar ─── */}
+              <div className="admin-action-bar" style={s.actionBar}>
+                <div style={{ flex:1, minWidth:180 }}>
+                  <input
+                    className="admin-folder-input"
+                    style={{ ...s.input, ...(folderNameError ? s.inputError : {}) }}
+                    placeholder={currentFolderId ? `New subfolder in "${currentFolderName}"…` : 'New folder name…'}
+                    value={newFolderName}
+                    onChange={e => { setNewFolderName(e.target.value); if (folderNameError) setFolderNameError(''); }}
+                    onKeyDown={e => e.key === 'Enter' && handleCreateFolder()}
+                  />
+                  {folderNameError && <p style={s.errorMsg}>⚠ {folderNameError}</p>}
                 </div>
-                {folderDocs.map(p => (
-                  <div key={p.id} style={{ ...s.trow, flexWrap:'wrap' }}>
-                    {renamingPdf?.id === p.id ? (
-                      <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8, marginRight:8, minWidth:200 }}>
-                        <input
-                          style={s.input}
-                          value={pdfRenameVal}
-                          onChange={e => setPdfRenameVal(e.target.value)}
-                          placeholder="Display name"
-                          onKeyDown={e => e.key === 'Enter' && handleRenamePdf()}
-                          autoFocus
-                        />
-                        {p.source === 'blob' ? (
-                          <select style={s.select} value={pdfMoveFolderId} onChange={e => setPdfMoveFolderId(e.target.value)}>
-                            <option value="KEEP">Keep in current folder ({currentFolderName})</option>
-                            <option value="__none__">Move to Root</option>
-                            {renderFolderOptions()}
-                          </select>
+                <div className="admin-btn-row" style={{ display:'flex', gap:12 }}>
+                  <button style={s.secondaryBtn} onClick={handleCreateFolder} disabled={folderBusy}>
+                    + {currentFolderId ? 'Subfolder' : 'Create Folder'}
+                  </button>
+                  <button style={s.primaryBtn} onClick={openUpload}>⬆ Upload PDF</button>
+                </div>
+              </div>
+
+              {/* ─── Folders ─── */}
+              {subfolders.length > 0 && (
+                <div style={{ marginBottom:24 }}>
+                  <p style={s.sectionLabel}>📁 Folders ({subfolders.length})</p>
+                  <div style={s.table}>
+                    <div className="admin-thead" style={s.thead}>
+                      <span style={{ flex:1 }}>Folder Name</span>
+                      <span style={{ width:240, textAlign:'right' }}>Actions</span>
+                    </div>
+                    {subfolders.map(f => (
+                      <div key={f.id} className="admin-trow" style={s.trow}>
+                        {renamingFolder?.id === f.id ? (
+                          <div style={{ flex:1, display:'flex', flexDirection:'column', gap:4 }}>
+                            <input
+                              style={{ ...s.input, ...(folderRenameError ? s.inputError : {}) }}
+                              value={folderRenameVal}
+                              onChange={e => { setFolderRenameVal(e.target.value); if (folderRenameError) setFolderRenameError(''); }}
+                              onKeyDown={e => { if (e.key === 'Enter') handleRenameFolder(); if (e.key === 'Escape') setRenamingFolder(null); }}
+                              autoFocus
+                            />
+                            {folderRenameError && <p style={s.errorMsg}>⚠ {folderRenameError}</p>}
+                          </div>
                         ) : (
-                          <p style={{ fontSize:12, color:'#aaa', margin:0 }}>ℹ Local files cannot be moved via admin</p>
+                          <button className="admin-folder-name-btn" style={s.folderNameBtn} onClick={() => navigateInto(f)}>
+                            <span style={{ display:'flex', alignItems:'center', gap:8 }}>📁 {f.name}</span>
+                            <span className="admin-enter-hint" style={s.enterHint}>Enter →</span>
+                          </button>
                         )}
+                        <div className="admin-actions" style={s.actions}>
+                          {renamingFolder?.id === f.id ? (
+                            <>
+                              <button style={s.saveBtn} onClick={handleRenameFolder} disabled={folderBusy}>Save</button>
+                              <button style={s.cancelBtn} onClick={() => { setRenamingFolder(null); setFolderRenameError(''); }}>Cancel</button>
+                            </>
+                          ) : (
+                            <>
+                              <button style={s.editBtn} onClick={() => { setRenamingFolder(f); setFolderRenameVal(f.name); setFolderRenameError(''); }}>Rename</button>
+                              <button style={s.deleteBtn} onClick={() => handleDeleteFolder(f.id, f.name)}>Delete</button>
+                            </>
+                          )}
+                        </div>
                       </div>
-                    ) : (
-                      <span style={{ flex:1, fontWeight:600, color:'#1a1a2e', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', paddingRight:8 }}>
-                        📄 {p.title || p.name}
-                      </span>
-                    )}
-                    <span style={{ width:80, flexShrink:0 }}>
-                      <span style={{ ...s.sourceBadge, ...(p.source === 'blob' ? s.blobBadge : s.fsBadge) }}>
-                        {p.source === 'blob' ? 'Cloud' : 'Local'}
-                      </span>
-                    </span>
-                    <div style={{ ...s.actions, width:200, flexShrink:0 }}>
-                      {renamingPdf?.id === p.id ? (
-                        <>
-                          <button style={s.saveBtn} onClick={handleRenamePdf} disabled={pdfBusy}>Save</button>
-                          <button style={s.cancelBtn} onClick={() => setRenamingPdf(null)}>Cancel</button>
-                        </>
-                      ) : (
-                        <>
-                          <button style={s.editBtn} onClick={() => { setRenamingPdf(p); setPdfRenameVal(p.title || p.name || ''); setPdfMoveFolderId('KEEP'); }}>Edit</button>
-                          <button style={s.deleteBtn} onClick={() => handleDeletePdf(p.id, p.title || p.name, p.source)}>Delete</button>
-                        </>
-                      )}
-                    </div>
+                    ))}
                   </div>
-                ))}
+                </div>
+              )}
+
+              {/* ─── Documents ─── */}
+              <div>
+                <p style={s.sectionLabel}>📄 Documents ({folderDocs.length})</p>
+                {folderDocs.length === 0 ? (
+                  <div style={s.empty}>No documents in {currentFolderId ? `"${currentFolderName}"` : 'Root'}. Upload one above.</div>
+                ) : (
+                  <div style={s.table}>
+                    <div className="admin-thead" style={s.thead}>
+                      <span style={{ flex:1 }}>Document Name</span>
+                      <span className="admin-source-col" style={{ width:80 }}>Source</span>
+                      <span style={{ width:200, textAlign:'right' }}>Actions</span>
+                    </div>
+                    {folderDocs.map(p => (
+                      <div key={p.id} className="admin-trow" style={{ ...s.trow, flexWrap:'wrap' }}>
+                        {renamingPdf?.id === p.id ? (
+                          <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8, marginRight:8, minWidth:200 }}>
+                            <input
+                              style={s.input}
+                              value={pdfRenameVal}
+                              onChange={e => setPdfRenameVal(e.target.value)}
+                              placeholder="Display name"
+                              onKeyDown={e => e.key === 'Enter' && handleRenamePdf()}
+                              autoFocus
+                            />
+                            {p.source === 'blob' ? (
+                              <select style={s.select} value={pdfMoveFolderId} onChange={e => setPdfMoveFolderId(e.target.value)}>
+                                <option value="KEEP">Keep in current folder ({currentFolderName})</option>
+                                <option value="__none__">Move to Root</option>
+                                {renderFolderOptions()}
+                              </select>
+                            ) : (
+                              <p style={{ fontSize:12, color:'#aaa', margin:0 }}>ℹ Local files cannot be moved via admin</p>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="admin-doc-name" style={{ flex:1, fontWeight:600, color:'#1a1a2e', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', paddingRight:8 }}>
+                            📄 {p.title || p.name}
+                          </span>
+                        )}
+                        <span className="admin-source-col" style={{ width:80, flexShrink:0 }}>
+                          <span style={{ ...s.sourceBadge, ...(p.source === 'blob' ? s.blobBadge : s.fsBadge) }}>
+                            {p.source === 'blob' ? 'Cloud' : 'Local'}
+                          </span>
+                        </span>
+                        <div className="admin-actions admin-doc-actions" style={{ ...s.actions, width:200, flexShrink:0 }}>
+                          {renamingPdf?.id === p.id ? (
+                            <>
+                              <button style={s.saveBtn} onClick={handleRenamePdf} disabled={pdfBusy}>Save</button>
+                              <button style={s.cancelBtn} onClick={() => setRenamingPdf(null)}>Cancel</button>
+                            </>
+                          ) : (
+                            <>
+                              <button style={s.editBtn} onClick={() => { setRenamingPdf(p); setPdfRenameVal(p.title || p.name || ''); setPdfMoveFolderId('KEEP'); }}>Edit</button>
+                              <button style={s.deleteBtn} onClick={() => handleDeletePdf(p.id, p.title || p.name, p.source)}>Delete</button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -410,7 +420,7 @@ export default function AdminPage() {
             <div style={{ ...s.dropZone, ...(uploadFile ? s.dropZoneActive : {}) }} onClick={() => fileRef.current?.click()}>
               {uploadFile
                 ? <span style={{ color:'#BF0426', fontWeight:500 }}>📄 {uploadFile.name} ({(uploadFile.size/1024/1024).toFixed(1)} MB)</span>
-                : <span style={{ color:'#aaa' }}>Click to select a PDF (max 50 MB)</span>
+                : <span style={{ color:'#aaa' }}>Click to select a PDF</span>
               }
               <input ref={fileRef} type="file" accept="application/pdf" style={{ display:'none' }}
                 onChange={e => {
@@ -449,18 +459,16 @@ export default function AdminPage() {
 const s = {
   wrap: { minHeight:'100vh', background:'#f7f7f7', fontFamily:"'Syne',sans-serif" },
   nav: { display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 40px', background:'#fff', borderBottom:'2px solid #FFF0F2', boxShadow:'0 2px 12px rgba(0,0,0,0.04)', position:'sticky', top:0, zIndex:100 },
-  navL: { display:'flex', alignItems:'center', gap:14 },
-  adminBadge: { background:'#BF0426', color:'#fff', fontSize:11, fontWeight:800, padding:'4px 12px', borderRadius:20, letterSpacing:'0.5px' },
-  backBtn: { background:'transparent', border:'1.5px solid #FADADD', color:'#BF0426', padding:'8px 16px', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:700, fontFamily:"'Syne',sans-serif" },
+  navL: { display:'flex', alignItems:'center', gap:12 },
+  adminBadge: { background:'#BF0426', color:'#fff', fontSize:11, fontWeight:800, padding:'4px 12px', borderRadius:20, letterSpacing:'0.5px', whiteSpace:'nowrap' },
+  backBtn: { background:'transparent', border:'1.5px solid #FADADD', color:'#BF0426', padding:'8px 16px', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:700, fontFamily:"'Syne',sans-serif", whiteSpace:'nowrap' },
   content: { maxWidth:1100, margin:'0 auto', padding:'36px 24px' },
-  h1: { fontSize:'clamp(22px,3vw,32px)', fontWeight:800, color:'#1a1a2e', marginBottom:4 },
+  h1: { fontSize:'clamp(20px,3vw,32px)', fontWeight:800, color:'#1a1a2e', marginBottom:4 },
   sub: { fontSize:13, color:'#aaa', marginBottom:24 },
-  // Breadcrumb
   breadcrumb: { display:'flex', alignItems:'center', gap:4, flexWrap:'wrap', marginBottom:28, background:'#fff', border:'1.5px solid #f0f0f0', borderRadius:10, padding:'10px 16px' },
-  breadBtn: { background:'transparent', border:'none', color:'#888', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:"'Syne',sans-serif", padding:'2px 6px', borderRadius:6, transition:'all 0.15s' },
+  breadBtn: { background:'transparent', border:'none', color:'#888', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:"'Syne',sans-serif", padding:'2px 6px', borderRadius:6 },
   breadBtnActive: { color:'#BF0426', fontWeight:800 },
   breadSep: { color:'#ccc', fontSize:16, fontWeight:400, margin:'0 2px' },
-  // Action bar (replaces tabs + create row)
   actionBar: { display:'flex', gap:12, marginBottom:28, flexWrap:'wrap', alignItems:'flex-start' },
   sectionLabel: { fontSize:11, fontWeight:700, color:'#aaa', textTransform:'uppercase', letterSpacing:'0.5px', margin:'0 0 10px 0' },
   secondaryBtn: { padding:'12px 20px', background:'#fff', color:'#BF0426', border:'1.5px solid #FADADD', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:700, fontFamily:"'Syne',sans-serif", whiteSpace:'nowrap' },
@@ -474,17 +482,15 @@ const s = {
   saveBtn: { padding:'7px 14px', background:'#BF0426', color:'#fff', border:'none', borderRadius:6, cursor:'pointer', fontSize:12, fontWeight:700, fontFamily:"'Syne',sans-serif" },
   cancelBtn: { padding:'7px 14px', background:'#f5f5f5', color:'#666', border:'none', borderRadius:6, cursor:'pointer', fontSize:12, fontWeight:700, fontFamily:"'Syne',sans-serif" },
   empty: { textAlign:'center', padding:'60px 0', color:'#bbb', fontSize:15 },
-  // Table
   table: { background:'#fff', borderRadius:14, border:'1.5px solid #f0f0f0', overflow:'hidden' },
   thead: { display:'flex', alignItems:'center', padding:'12px 20px', background:'#f8f8f8', borderBottom:'1px solid #f0f0f0', fontSize:11, fontWeight:700, color:'#aaa', textTransform:'uppercase', letterSpacing:'0.5px', gap:12 },
   trow: { display:'flex', alignItems:'center', padding:'14px 20px', borderBottom:'1px solid #f8f8f8', gap:12, minHeight:62 },
   actions: { display:'flex', gap:8, justifyContent:'flex-end', flexShrink:0 },
   folderNameBtn: { flex:1, display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, background:'transparent', border:'none', cursor:'pointer', fontFamily:"'Syne',sans-serif", fontSize:15, fontWeight:700, color:'#1a1a2e', textAlign:'left', padding:'6px 0' },
-  enterHint: { fontSize:11, color:'#BF0426', fontWeight:700, background:'#FFF0F2', padding:'3px 10px', borderRadius:20, border:'1px solid #FADADD', whiteSpace:'nowrap' },
+  enterHint: { fontSize:11, color:'#BF0426', fontWeight:700, background:'#FFF0F2', padding:'3px 10px', borderRadius:20, border:'1px solid #FADADD', whiteSpace:'nowrap', flexShrink:0 },
   sourceBadge: { fontSize:11, fontWeight:700, padding:'3px 9px', borderRadius:12 },
   blobBadge: { background:'#e8f5e9', color:'#2e7d32' },
   fsBadge: { background:'#e3f2fd', color:'#1565c0' },
-  // Modal
   overlay: { position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:999, padding:20 },
   modal: { background:'#fff', borderRadius:20, padding:32, width:'100%', maxWidth:480, boxShadow:'0 24px 64px rgba(0,0,0,0.18)', display:'flex', flexDirection:'column', gap:10 },
   modalTitle: { fontSize:20, fontWeight:800, color:'#1a1a2e', marginBottom:6 },

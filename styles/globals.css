@@ -63,3 +63,72 @@ button, input { -webkit-tap-highlight-color: transparent; touch-action: manipula
   .viewer-user-badge { display: none !important; }
   .viewer-area { padding: 16px 12px !important; }
 }
+
+/* ─── Skeleton loading ────────────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 8px;
+}
+
+/* ─── Admin page mobile ───────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .admin-nav { padding: 10px 16px !important; }
+  .admin-content { padding: 20px 16px !important; }
+
+  .admin-action-bar {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  .admin-action-bar > div:first-child {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: none !important;
+  }
+  .admin-btn-row {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+  }
+  .admin-btn-row > button { flex: 1 !important; font-size: 13px !important; }
+
+  .admin-thead { display: none !important; }
+
+  .admin-trow {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    padding: 14px 16px !important;
+  }
+  .admin-folder-name-btn {
+    width: 100% !important;
+    font-size: 15px !important;
+    padding-bottom: 10px !important;
+    border-bottom: 1px solid #f5f5f5 !important;
+  }
+  .admin-enter-hint { font-size: 10px !important; }
+  .admin-actions {
+    justify-content: flex-start !important;
+    width: 100% !important;
+  }
+  .admin-actions > button { flex: 1; text-align: center; }
+  .admin-source-col { display: none !important; }
+  .admin-doc-name {
+    white-space: normal !important;
+    font-size: 14px !important;
+    padding-right: 0 !important;
+  }
+  .admin-doc-actions {
+    width: 100% !important;
+    justify-content: flex-start !important;
+  }
+  .admin-doc-actions > button { flex: 1; text-align: center; }
+}
+
+/* ─── Dashboard mobile extras ─────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .dash-nav { gap: 8px !important; }
+  .dash-admin-btn { display: none !important; }
+  .dash-logout-btn { font-size: 12px !important; padding: 7px 12px !important; }
+}

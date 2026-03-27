@@ -10,6 +10,7 @@ export default function Dashboard() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [activeFolder, setActiveFolder] = useState(null); // null = all docs
+  const [dataLoaded, setDataLoaded] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -23,6 +24,7 @@ export default function Dashboard() {
     fetch('/api/pdf/list').then(r => r.json()).then(d => {
       if (d.pdfs) setPdfs(d.pdfs);
       if (d.folders) setFolders(d.folders);
+      setDataLoaded(true);
     });
   }, []);
 
@@ -59,11 +61,11 @@ export default function Dashboard() {
               </div>
             )}
             {isAdmin && (
-              <button onClick={() => router.push('/admin')} style={s.adminBtn}>
+              <button className="dash-admin-btn" onClick={() => router.push('/admin')} style={s.adminBtn}>
                 ⚙️ Admin
               </button>
             )}
-            <button onClick={logout} style={s.logoutBtn}>
+            <button className="dash-logout-btn" onClick={logout} style={s.logoutBtn}>
               Sign out
             </button>
           </div>
@@ -90,8 +92,17 @@ export default function Dashboard() {
         {/* Content */}
         <main className="dash-main" style={s.main}>
 
+          {/* Folder filter bar skeleton */}
+          {!dataLoaded && (
+            <div style={{ display:'flex', gap:8, marginBottom:28, flexWrap:'wrap' }}>
+              {[1,2,3].map(i => (
+                <div key={i} className="skeleton" style={{ height:36, width: i === 1 ? 60 : 120, borderRadius:20 }} />
+              ))}
+            </div>
+          )}
+
           {/* Folder filter bar */}
-          {folders.length > 0 && (
+          {dataLoaded && folders.length > 0 && (
             <div style={s.folderBar}>
               <button
                 style={{ ...s.folderChip, ...(activeFolder === null ? s.folderChipActive : {}) }}
@@ -113,7 +124,21 @@ export default function Dashboard() {
             </div>
           )}
 
-          {visiblePdfs.length === 0 ? (
+          {!dataLoaded ? (
+            <div className="dash-grid" style={s.grid}>
+              {[1,2,3,4].map(i => (
+                <div key={i} style={{ ...s.card, cursor:'default', animation:'none', opacity:1 }}>
+                  <div style={s.cardTop}>
+                    <div className="skeleton" style={{ width:52, height:52, borderRadius:12 }} />
+                    <div className="skeleton" style={{ width:72, height:26, borderRadius:20 }} />
+                  </div>
+                  <div className="skeleton" style={{ height:20, borderRadius:6, marginTop:4 }} />
+                  <div className="skeleton" style={{ height:20, width:'60%', borderRadius:6 }} />
+                  <div className="skeleton" style={{ height:46, borderRadius:10, marginTop:8 }} />
+                </div>
+              ))}
+            </div>
+          ) : visiblePdfs.length === 0 ? (
             <div style={s.empty}>
               <div style={{ fontSize:56, marginBottom:16, animation:'float 3s ease-in-out infinite' }}>📂</div>
               <p style={s.emptyText}>{pdfs.length === 0 ? 'No documents available yet.' : 'No documents in this folder.'}</p>
