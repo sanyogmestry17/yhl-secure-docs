@@ -1,28 +1,47 @@
-import { generateClientTokenFromReadWriteToken } from '@vercel/blob/client';
+import { handleUpload } from '@vercel/blob/client';
 import { getSession } from '../../../lib/session';
 
-// Returns a short-lived client token the browser uses to PUT directly to Vercel Blob.
+// bodyParser must be false so we can read the raw body for signature verification
+export const config = { api: { bodyParser: false } };
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const session = await getSession(req, res);
-  if (!session?.user) return res.status(401).json({ error: 'Unauthorized' });
-  if (session.user.email !== process.env.ADMIN_EMAIL) return res.status(403).json({ error: 'Forbidden' });
+  // Read raw body from stream (bodyParser is disabled)
+  const rawBody = await new Promise((resolve, reject) => {
+    let data = '';
+    req.on('data', chunk => { data += chunk; });
+    req.on('end', () => resolve(data));
+    req.on('error', reject);
+  });
 
-  const { filename } = req.body;
-  if (!filename) return res.status(400).json({ error: 'filename required' });
+  let body;
+  try {
+    body = JSON.parse(rawBody);
+  } catch {
+    return res.status(400).json({ error: 'Invalid JSON body' });
+  }
 
   try {
-    const clientToken = await generateClientTokenFromReadWriteToken({
-      access: 'public',
-      pathname: filename,
-      allowedContentTypes: ['application/pdf'],
-      maximumSizeInBytes: 100 * 1024 * 1024,
-      addRandomSuffix: true,
+    const jsonResponse = await handleUpload({
+      body,
+      request: req,
+      onBeforeGenerateToken: async (pathname) => {
+        // Auth check happens here — Vercel Blob calls this during token generation
+        const session = await getSession(req, res);
+        if (!session?.user) throw new Error('Unauthorized');
+        if (session.user.email !== process.env.ADMIN_EMAIL) throw new Error('Forbidden');
+        return {
+          access: 'private',
+          allowedContentTypes: ['application/pdf'],
+          maximumSizeInBytes: 500 * 1024 * 1024, // 500 MB
+        };
+      },
+      // No onUploadCompleted — metadata is saved client-side after upload() resolves
     });
-    return res.json({ clientToken });
+    return res.json(jsonResponse);
   } catch (err) {
     console.error('[blob-token]', err);
-    return res.status(500).json({ error: err.message });
+    return res.status(400).json({ error: err.message });
   }
 }

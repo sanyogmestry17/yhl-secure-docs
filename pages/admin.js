@@ -1,3 +1,4 @@
+import { upload } from '@vercel/blob/client';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
@@ -138,16 +139,22 @@ export default function AdminPage() {
     setUploading(true);
     setUploadProgress('Uploading…');
     try {
-      // Send raw binary directly to our server — same-origin, no CORS, streamed to Vercel Blob
-      const r = await fetch('/api/admin/pdfs/upload', {
+      // Upload directly from browser to Vercel Blob CDN — no serverless body size limit
+      const blob = await upload(uploadFile.name, uploadFile, {
+        access: 'private',
+        handleUploadUrl: '/api/admin/blob-token',
+      });
+
+      // Save metadata to Redis
+      const r = await fetch('/api/admin/pdfs/save-meta', {
         method: 'POST',
-        body: uploadFile,
-        headers: {
-          'content-type': 'application/pdf',
-          'x-file-name': encodeURIComponent(uploadFile.name),
-          'x-display-name': encodeURIComponent(uploadName.trim()),
-          'x-folder-id': uploadFolderId || '',
-        },
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: uploadName.trim(),
+          folderId: uploadFolderId || null,
+          blobUrl: blob.url,
+          pathname: blob.pathname,
+        }),
       });
       if (!r.ok) {
         const d = await r.json().catch(() => ({}));
