@@ -142,7 +142,6 @@ export default function AdminPage() {
         access: 'public',
         handleUploadUrl: '/api/admin/blob-token',
         clientPayload: JSON.stringify({ name: uploadName.trim(), folderId: uploadFolderId || null }),
-        multipart: true,
         onUploadProgress: ({ percentage }) => setUploadProgress(`Uploading… ${Math.round(percentage)}%`),
       });
       setShowUpload(false);
