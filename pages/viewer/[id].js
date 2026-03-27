@@ -34,6 +34,12 @@ export default function ViewerPage() {
   }, [id, user]);
 
   useEffect(() => {
+    // Block Safari swipe-back navigation — push a duplicate history entry so
+    // the back gesture stays on this page instead of navigating away.
+    window.history.pushState(null, '', window.location.href);
+    const lockHistory = () => window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate', lockHistory);
+
     const block = e => e.preventDefault();
     const blockKeys = e => {
       if ((e.ctrlKey || e.metaKey) && ['s','p','c','a','u'].includes(e.key.toLowerCase())) e.preventDefault();
@@ -51,6 +57,7 @@ export default function ViewerPage() {
     };
     document.addEventListener('visibilitychange', onHide);
     return () => {
+      window.removeEventListener('popstate', lockHistory);
       document.removeEventListener('contextmenu', block);
       document.removeEventListener('keydown', blockKeys);
       document.removeEventListener('visibilitychange', onHide);
