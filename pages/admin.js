@@ -135,13 +135,12 @@ export default function AdminPage() {
   async function handleUploadPDF() {
     if (!uploadFile || !uploadName.trim()) return;
     setUploading(true);
-    setUploadProgress('Uploading… 0%');
+    setUploadProgress('Uploading…');
     try {
       const { upload } = await import('@vercel/blob/client');
       const blob = await upload(uploadFile.name, uploadFile, {
         access: 'public',
         handleUploadUrl: '/api/admin/blob-token',
-        onUploadProgress: ({ percentage }) => setUploadProgress(`Uploading… ${Math.round(percentage)}%`),
       });
       setUploadProgress('Saving…');
       const r = await fetch('/api/admin/pdfs/save-meta', {
