@@ -135,50 +135,22 @@ export default function AdminPage() {
   async function handleUploadPDF() {
     if (!uploadFile || !uploadName.trim()) return;
     setUploading(true);
+    setUploadProgress('Uploading…');
     try {
-      // Step 1: get a short-lived client token from our server
-      setUploadProgress('Preparing…');
-      const tokenRes = await fetch('/api/admin/blob-token', {
+      // Send raw binary directly to our server — same-origin, no CORS, streamed to Vercel Blob
+      const r = await fetch('/api/admin/pdfs/upload', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: uploadFile.name }),
-      });
-      if (!tokenRes.ok) {
-        const d = await tokenRes.json();
-        throw new Error(d.error || 'Failed to get upload token');
-      }
-      const { clientToken } = await tokenRes.json();
-
-      // Step 2: PUT the file directly to Vercel Blob (browser → CDN, no server body limit)
-      setUploadProgress('Uploading…');
-      const params = new URLSearchParams({ pathname: uploadFile.name });
-      const uploadRes = await fetch(`https://vercel.com/api/blob/?${params}`, {
-        method: 'PUT',
         body: uploadFile,
         headers: {
-          authorization: `Bearer ${clientToken}`,
-          'x-api-version': '12',
-          'x-vercel-blob-access': 'public',
-          'x-content-length': String(uploadFile.size),
-          'x-content-type': 'application/pdf',
+          'content-type': 'application/pdf',
+          'x-file-name': encodeURIComponent(uploadFile.name),
+          'x-display-name': encodeURIComponent(uploadName.trim()),
+          'x-folder-id': uploadFolderId || '',
         },
       });
-      if (!uploadRes.ok) {
-        const errText = await uploadRes.text();
-        throw new Error(`Blob upload failed (${uploadRes.status}): ${errText}`);
-      }
-      const blob = await uploadRes.json();
-
-      // Step 3: save metadata in Redis via our server
-      setUploadProgress('Saving…');
-      const metaRes = await fetch('/api/admin/pdfs/save-meta', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: uploadName.trim(), folderId: uploadFolderId || null, blobUrl: blob.url, pathname: blob.pathname }),
-      });
-      if (!metaRes.ok) {
-        const d = await metaRes.json();
-        throw new Error(d.error || 'Failed to save metadata');
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d.error || `Server error ${r.status}`);
       }
       setShowUpload(false);
       await loadData();
