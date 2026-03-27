@@ -164,12 +164,13 @@ export default function ViewerPage() {
       </Head>
       <style>{`
         *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;}
-        canvas{pointer-events:none;display:block;touch-action:pan-x pan-y;}
+        canvas{pointer-events:none;display:block;touch-action:pan-x pan-y pinch-zoom;}
         img{-webkit-touch-callout:none!important;pointer-events:none;}
         @media print{body{display:none!important;}}
         @keyframes spin{to{transform:rotate(360deg);}}
         @keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
         @keyframes progressBar{from{width:0;}to{width:100%;}}
+        html,body{overscroll-behavior:none;}
       `}</style>
 
       <div style={s.wrap}>
