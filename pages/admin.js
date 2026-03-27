@@ -6,7 +6,6 @@ import Image from 'next/image';
 export default function AdminPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
-  const [tab, setTab] = useState('folders');
   const [folders, setFolders] = useState([]);
   const [pdfs, setPdfs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -113,6 +112,8 @@ export default function AdminPage() {
       body: JSON.stringify({ name: folderRenameVal.trim() }),
     });
     setRenamingFolder(null);
+    // Keep breadcrumb in sync if the renamed folder is in the current path
+    setFolderPath(prev => prev.map(f => f.id === renamingFolder.id ? { ...f, name: folderRenameVal.trim() } : f));
     await loadData();
     setFolderBusy(false);
   }
@@ -262,156 +263,133 @@ export default function AdminPage() {
             ))}
           </div>
 
-          {/* Tabs */}
-          <div style={s.tabs}>
-            <button style={{ ...s.tabBtn, ...(tab === 'folders' ? s.tabActive : {}) }} onClick={() => setTab('folders')}>
-              📁 Folders ({subfolders.length})
+          {/* ─── Action Bar (always visible) ─── */}
+          <div style={s.actionBar}>
+            <div style={{ flex:1, minWidth:180 }}>
+              <input
+                style={{ ...s.input, ...(folderNameError ? s.inputError : {}) }}
+                placeholder={currentFolderId ? `New subfolder in "${currentFolderName}"…` : 'New folder name…'}
+                value={newFolderName}
+                onChange={e => { setNewFolderName(e.target.value); if (folderNameError) setFolderNameError(''); }}
+                onKeyDown={e => e.key === 'Enter' && handleCreateFolder()}
+              />
+              {folderNameError && <p style={s.errorMsg}>⚠ {folderNameError}</p>}
+            </div>
+            <button style={s.secondaryBtn} onClick={handleCreateFolder} disabled={folderBusy}>
+              + {currentFolderId ? 'Subfolder' : 'Create Folder'}
             </button>
-            <button style={{ ...s.tabBtn, ...(tab === 'documents' ? s.tabActive : {}) }} onClick={() => setTab('documents')}>
-              📄 Documents ({folderDocs.length})
-            </button>
+            <button style={s.primaryBtn} onClick={openUpload}>⬆ Upload PDF</button>
           </div>
 
-          {/* ─── Folders Tab ─── */}
-          {tab === 'folders' && (
-            <div>
-              <div style={s.createRow}>
-                <div style={{ flex:1, minWidth:200 }}>
-                  <input
-                    style={{ ...s.input, ...(folderNameError ? s.inputError : {}) }}
-                    placeholder={currentFolderId ? `New subfolder inside "${currentFolderName}"…` : 'New folder name…'}
-                    value={newFolderName}
-                    onChange={e => { setNewFolderName(e.target.value); if (folderNameError) setFolderNameError(''); }}
-                    onKeyDown={e => e.key === 'Enter' && handleCreateFolder()}
-                  />
-                  {folderNameError && (
-                    <p style={s.errorMsg}>⚠ {folderNameError}</p>
-                  )}
+          {/* ─── Folders ─── */}
+          {subfolders.length > 0 && (
+            <div style={{ marginBottom:24 }}>
+              <p style={s.sectionLabel}>📁 Folders ({subfolders.length})</p>
+              <div style={s.table}>
+                <div style={s.thead}>
+                  <span style={{ flex:1 }}>Folder Name</span>
+                  <span style={{ width:240, textAlign:'right' }}>Actions</span>
                 </div>
-                <button style={s.primaryBtn} onClick={handleCreateFolder} disabled={folderBusy}>
-                  + {currentFolderId ? 'Create Subfolder' : 'Create Folder'}
-                </button>
-              </div>
-
-              {subfolders.length === 0 ? (
-                <div style={s.empty}>
-                  {currentFolderId ? `No subfolders inside "${currentFolderName}".` : 'No folders yet.'} Create one above.
-                </div>
-              ) : (
-                <div style={s.table}>
-                  <div style={s.thead}>
-                    <span style={{ flex:1 }}>Folder Name</span>
-                    <span style={{ width:240, textAlign:'right' }}>Actions</span>
-                  </div>
-                  {subfolders.map(f => (
-                    <div key={f.id} style={s.trow}>
+                {subfolders.map(f => (
+                  <div key={f.id} style={s.trow}>
+                    {renamingFolder?.id === f.id ? (
+                      <div style={{ flex:1, display:'flex', flexDirection:'column', gap:4 }}>
+                        <input
+                          style={{ ...s.input, ...(folderRenameError ? s.inputError : {}) }}
+                          value={folderRenameVal}
+                          onChange={e => { setFolderRenameVal(e.target.value); if (folderRenameError) setFolderRenameError(''); }}
+                          onKeyDown={e => { if (e.key === 'Enter') handleRenameFolder(); if (e.key === 'Escape') setRenamingFolder(null); }}
+                          autoFocus
+                        />
+                        {folderRenameError && <p style={s.errorMsg}>⚠ {folderRenameError}</p>}
+                      </div>
+                    ) : (
+                      <button style={s.folderNameBtn} onClick={() => navigateInto(f)}>
+                        📁 {f.name}
+                        <span style={s.enterHint}>Enter →</span>
+                      </button>
+                    )}
+                    <div style={s.actions}>
                       {renamingFolder?.id === f.id ? (
-                        <div style={{ flex:1, display:'flex', flexDirection:'column', gap:4 }}>
-                          <input
-                            style={{ ...s.input, ...(folderRenameError ? s.inputError : {}) }}
-                            value={folderRenameVal}
-                            onChange={e => { setFolderRenameVal(e.target.value); if (folderRenameError) setFolderRenameError(''); }}
-                            onKeyDown={e => { if (e.key === 'Enter') handleRenameFolder(); if (e.key === 'Escape') setRenamingFolder(null); }}
-                            autoFocus
-                          />
-                          {folderRenameError && <p style={s.errorMsg}>⚠ {folderRenameError}</p>}
-                        </div>
+                        <>
+                          <button style={s.saveBtn} onClick={handleRenameFolder} disabled={folderBusy}>Save</button>
+                          <button style={s.cancelBtn} onClick={() => { setRenamingFolder(null); setFolderRenameError(''); }}>Cancel</button>
+                        </>
                       ) : (
-                        <button style={s.folderNameBtn} onClick={() => navigateInto(f)}>
-                          📁 {f.name}
-                          <span style={s.enterHint}>Enter →</span>
-                        </button>
+                        <>
+                          <button style={s.editBtn} onClick={() => { setRenamingFolder(f); setFolderRenameVal(f.name); setFolderRenameError(''); }}>Rename</button>
+                          <button style={s.deleteBtn} onClick={() => handleDeleteFolder(f.id, f.name)}>Delete</button>
+                        </>
                       )}
-                      <div style={s.actions}>
-                        {renamingFolder?.id === f.id ? (
-                          <>
-                            <button style={s.saveBtn} onClick={handleRenameFolder} disabled={folderBusy}>Save</button>
-                            <button style={s.cancelBtn} onClick={() => { setRenamingFolder(null); setFolderRenameError(''); }}>Cancel</button>
-                          </>
-                        ) : (
-                          <>
-                            <button style={s.editBtn} onClick={() => { setRenamingFolder(f); setFolderRenameVal(f.name); setFolderRenameError(''); }}>Rename</button>
-                            <button style={s.deleteBtn} onClick={() => handleDeleteFolder(f.id, f.name)}>Delete</button>
-                          </>
-                        )}
-                      </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ─── Documents Tab ─── */}
-          {tab === 'documents' && (
-            <div>
-              <div style={s.createRow}>
-                <button style={s.primaryBtn} onClick={openUpload}>⬆ Upload PDF</button>
-                <span style={{ color:'#aaa', fontSize:13, alignSelf:'center' }}>
-                  Uploading into: 📁 {currentFolderName}
-                </span>
-              </div>
-
-              {folderDocs.length === 0 ? (
-                <div style={s.empty}>No documents in {currentFolderId ? `"${currentFolderName}"` : 'Root'}. Upload one above.</div>
-              ) : (
-                <div style={s.table}>
-                  <div style={s.thead}>
-                    <span style={{ flex:1 }}>Document Name</span>
-                    <span style={{ width:80 }}>Source</span>
-                    <span style={{ width:200, textAlign:'right' }}>Actions</span>
                   </div>
-                  {folderDocs.map(p => (
-                    <div key={p.id} style={{ ...s.trow, flexWrap:'wrap' }}>
-                      {renamingPdf?.id === p.id ? (
-                        <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8, marginRight:8, minWidth:200 }}>
-                          <input
-                            style={s.input}
-                            value={pdfRenameVal}
-                            onChange={e => setPdfRenameVal(e.target.value)}
-                            placeholder="Display name"
-                            onKeyDown={e => e.key === 'Enter' && handleRenamePdf()}
-                            autoFocus
-                          />
-                          {p.source === 'blob' ? (
-                            <select style={s.select} value={pdfMoveFolderId} onChange={e => setPdfMoveFolderId(e.target.value)}>
-                              <option value="KEEP">Keep in current folder ({currentFolderName})</option>
-                              <option value="__none__">Move to Root</option>
-                              {renderFolderOptions()}
-                            </select>
-                          ) : (
-                            <p style={{ fontSize:12, color:'#aaa', margin:0 }}>ℹ Local files cannot be moved via admin</p>
-                          )}
-                        </div>
-                      ) : (
-                        <span style={{ flex:1, fontWeight:600, color:'#1a1a2e', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', paddingRight:8 }}>
-                          📄 {p.title || p.name}
-                        </span>
-                      )}
-                      <span style={{ width:80, flexShrink:0 }}>
-                        <span style={{ ...s.sourceBadge, ...(p.source === 'blob' ? s.blobBadge : s.fsBadge) }}>
-                          {p.source === 'blob' ? 'Cloud' : 'Local'}
-                        </span>
-                      </span>
-                      <div style={{ ...s.actions, width:200, flexShrink:0 }}>
-                        {renamingPdf?.id === p.id ? (
-                          <>
-                            <button style={s.saveBtn} onClick={handleRenamePdf} disabled={pdfBusy}>Save</button>
-                            <button style={s.cancelBtn} onClick={() => setRenamingPdf(null)}>Cancel</button>
-                          </>
-                        ) : (
-                          <>
-                            <button style={s.editBtn} onClick={() => { setRenamingPdf(p); setPdfRenameVal(p.title || p.name || ''); setPdfMoveFolderId('KEEP'); }}>Edit</button>
-                            <button style={s.deleteBtn} onClick={() => handleDeletePdf(p.id, p.title || p.name, p.source)}>Delete</button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                ))}
+              </div>
             </div>
           )}
+
+          {/* ─── Documents ─── */}
+          <div>
+            <p style={s.sectionLabel}>📄 Documents ({folderDocs.length})</p>
+            {folderDocs.length === 0 ? (
+              <div style={s.empty}>No documents in {currentFolderId ? `"${currentFolderName}"` : 'Root'}. Upload one above.</div>
+            ) : (
+              <div style={s.table}>
+                <div style={s.thead}>
+                  <span style={{ flex:1 }}>Document Name</span>
+                  <span style={{ width:80 }}>Source</span>
+                  <span style={{ width:200, textAlign:'right' }}>Actions</span>
+                </div>
+                {folderDocs.map(p => (
+                  <div key={p.id} style={{ ...s.trow, flexWrap:'wrap' }}>
+                    {renamingPdf?.id === p.id ? (
+                      <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8, marginRight:8, minWidth:200 }}>
+                        <input
+                          style={s.input}
+                          value={pdfRenameVal}
+                          onChange={e => setPdfRenameVal(e.target.value)}
+                          placeholder="Display name"
+                          onKeyDown={e => e.key === 'Enter' && handleRenamePdf()}
+                          autoFocus
+                        />
+                        {p.source === 'blob' ? (
+                          <select style={s.select} value={pdfMoveFolderId} onChange={e => setPdfMoveFolderId(e.target.value)}>
+                            <option value="KEEP">Keep in current folder ({currentFolderName})</option>
+                            <option value="__none__">Move to Root</option>
+                            {renderFolderOptions()}
+                          </select>
+                        ) : (
+                          <p style={{ fontSize:12, color:'#aaa', margin:0 }}>ℹ Local files cannot be moved via admin</p>
+                        )}
+                      </div>
+                    ) : (
+                      <span style={{ flex:1, fontWeight:600, color:'#1a1a2e', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', paddingRight:8 }}>
+                        📄 {p.title || p.name}
+                      </span>
+                    )}
+                    <span style={{ width:80, flexShrink:0 }}>
+                      <span style={{ ...s.sourceBadge, ...(p.source === 'blob' ? s.blobBadge : s.fsBadge) }}>
+                        {p.source === 'blob' ? 'Cloud' : 'Local'}
+                      </span>
+                    </span>
+                    <div style={{ ...s.actions, width:200, flexShrink:0 }}>
+                      {renamingPdf?.id === p.id ? (
+                        <>
+                          <button style={s.saveBtn} onClick={handleRenamePdf} disabled={pdfBusy}>Save</button>
+                          <button style={s.cancelBtn} onClick={() => setRenamingPdf(null)}>Cancel</button>
+                        </>
+                      ) : (
+                        <>
+                          <button style={s.editBtn} onClick={() => { setRenamingPdf(p); setPdfRenameVal(p.title || p.name || ''); setPdfMoveFolderId('KEEP'); }}>Edit</button>
+                          <button style={s.deleteBtn} onClick={() => handleDeletePdf(p.id, p.title || p.name, p.source)}>Delete</button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -475,12 +453,10 @@ const s = {
   breadBtn: { background:'transparent', border:'none', color:'#888', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:"'Syne',sans-serif", padding:'2px 6px', borderRadius:6, transition:'all 0.15s' },
   breadBtnActive: { color:'#BF0426', fontWeight:800 },
   breadSep: { color:'#ccc', fontSize:16, fontWeight:400, margin:'0 2px' },
-  // Tabs
-  tabs: { display:'flex', gap:8, marginBottom:24 },
-  tabBtn: { padding:'10px 20px', borderRadius:10, border:'1.5px solid #e0e0e0', background:'#fff', color:'#888', fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:"'Syne',sans-serif" },
-  tabActive: { background:'#BF0426', color:'#fff', border:'1.5px solid #BF0426' },
-  // Create row
-  createRow: { display:'flex', gap:12, marginBottom:24, flexWrap:'wrap', alignItems:'flex-start' },
+  // Action bar (replaces tabs + create row)
+  actionBar: { display:'flex', gap:12, marginBottom:28, flexWrap:'wrap', alignItems:'flex-start' },
+  sectionLabel: { fontSize:11, fontWeight:700, color:'#aaa', textTransform:'uppercase', letterSpacing:'0.5px', margin:'0 0 10px 0' },
+  secondaryBtn: { padding:'12px 20px', background:'#fff', color:'#BF0426', border:'1.5px solid #FADADD', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:700, fontFamily:"'Syne',sans-serif", whiteSpace:'nowrap' },
   input: { width:'100%', padding:'11px 14px', border:'1.5px solid #e0e0e0', borderRadius:8, fontSize:14, fontFamily:"'Syne',sans-serif", outline:'none', background:'#fff', boxSizing:'border-box' },
   inputError: { border:'1.5px solid #BF0426' },
   select: { width:'100%', padding:'11px 14px', border:'1.5px solid #e0e0e0', borderRadius:8, fontSize:14, fontFamily:"'Syne',sans-serif", outline:'none', background:'#fff', cursor:'pointer', boxSizing:'border-box' },
