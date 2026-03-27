@@ -135,27 +135,16 @@ export default function AdminPage() {
   async function handleUploadPDF() {
     if (!uploadFile || !uploadName.trim()) return;
     setUploading(true);
-    setUploadProgress('Reading file…');
+    setUploadProgress('Uploading… 0%');
     try {
-      const fileBase64 = await fileToBase64(uploadFile);
-      setUploadProgress('Uploading to cloud storage…');
-      const r = await fetch('/api/admin/pdfs/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: uploadName.trim(),
-          folderId: uploadFolderId || null,
-          fileBase64,
-          fileName: uploadFile.name,
-        }),
+      const { upload } = await import('@vercel/blob/client');
+      await upload(uploadFile.name, uploadFile, {
+        access: 'public',
+        handleUploadUrl: '/api/admin/blob-token',
+        clientPayload: JSON.stringify({ name: uploadName.trim(), folderId: uploadFolderId || null }),
+        multipart: true,
+        onUploadProgress: ({ percentage }) => setUploadProgress(`Uploading… ${Math.round(percentage)}%`),
       });
-      let d;
-      try {
-        d = await r.json();
-      } catch (parseErr) {
-        throw new Error('Server returned invalid JSON response');
-      }
-      if (!r.ok) throw new Error(d.error || 'Upload failed');
       setShowUpload(false);
       await loadData();
     } catch (err) {
@@ -198,15 +187,6 @@ export default function AdminPage() {
     }
     await fetch(`/api/admin/pdfs/${id}`, { method: 'DELETE' });
     await loadData();
-  }
-
-  function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result.split(',')[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
   }
 
   function getFolderLabel(id) {
@@ -497,7 +477,7 @@ const s = {
   input: { width:'100%', padding:'11px 14px', border:'1.5px solid #e0e0e0', borderRadius:8, fontSize:14, fontFamily:"'Syne',sans-serif", outline:'none', background:'#fff', boxSizing:'border-box' },
   inputError: { border:'1.5px solid #BF0426' },
   select: { width:'100%', padding:'11px 14px', border:'1.5px solid #e0e0e0', borderRadius:8, fontSize:14, fontFamily:"'Syne',sans-serif", outline:'none', background:'#fff', cursor:'pointer', boxSizing:'border-box' },
-  errorMsg: { color:'#BF0426', fontSize:12, fontWeight:600, margin:'4px 0 0 2px' },
+  errorMsg: { color:'#BF0426', fontSize:12, fontWeight:500, margin:'4px 0 0 2px' },
   primaryBtn: { padding:'12px 20px', background:'#BF0426', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:700, fontFamily:"'Syne',sans-serif", whiteSpace:'nowrap' },
   editBtn: { padding:'7px 14px', background:'#f0f0f0', color:'#444', border:'none', borderRadius:6, cursor:'pointer', fontSize:12, fontWeight:700, fontFamily:"'Syne',sans-serif" },
   deleteBtn: { padding:'7px 14px', background:'#FFF0F2', color:'#BF0426', border:'1px solid #FADADD', borderRadius:6, cursor:'pointer', fontSize:12, fontWeight:700, fontFamily:"'Syne',sans-serif" },
