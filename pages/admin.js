@@ -138,12 +138,21 @@ export default function AdminPage() {
     setUploadProgress('Uploading… 0%');
     try {
       const { upload } = await import('@vercel/blob/client');
-      await upload(uploadFile.name, uploadFile, {
+      const blob = await upload(uploadFile.name, uploadFile, {
         access: 'public',
         handleUploadUrl: '/api/admin/blob-token',
-        clientPayload: JSON.stringify({ name: uploadName.trim(), folderId: uploadFolderId || null }),
         onUploadProgress: ({ percentage }) => setUploadProgress(`Uploading… ${Math.round(percentage)}%`),
       });
+      setUploadProgress('Saving…');
+      const r = await fetch('/api/admin/pdfs/save-meta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: uploadName.trim(), folderId: uploadFolderId || null, blobUrl: blob.url, pathname: blob.pathname }),
+      });
+      if (!r.ok) {
+        const d = await r.json();
+        throw new Error(d.error || 'Failed to save metadata');
+      }
       setShowUpload(false);
       await loadData();
     } catch (err) {
