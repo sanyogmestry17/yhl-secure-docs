@@ -129,6 +129,6 @@ button, input { -webkit-tap-highlight-color: transparent; touch-action: manipula
 /* ─── Dashboard mobile extras ─────────────────────────────────────────────── */
 @media (max-width: 480px) {
   .dash-nav { gap: 8px !important; }
-  .dash-admin-btn { display: none !important; }
+  .dash-admin-btn { font-size: 12px !important; padding: 7px 12px !important; }
   .dash-logout-btn { font-size: 12px !important; padding: 7px 12px !important; }
 }

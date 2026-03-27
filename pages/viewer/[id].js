@@ -40,10 +40,10 @@ export default function ViewerPage() {
     };
     document.addEventListener('contextmenu', block);
     document.addEventListener('keydown', blockKeys);
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth <= 768;
     const devCheck = setInterval(() => {
       if (isMobile) return;
-      const open = window.outerWidth - window.innerWidth > 160 || window.outerHeight - window.innerHeight > 160;
+      const open = window.outerWidth - window.innerWidth > 200 || window.outerHeight - window.innerHeight > 200;
       if (containerRef.current) containerRef.current.style.filter = open ? 'blur(24px)' : 'none';
     }, 800);
     const onHide = () => {
@@ -160,11 +160,11 @@ export default function ViewerPage() {
       <Head>
         <title>Viewing Document — YourHappyLife</title>
         <link rel="icon" href="/logo.png" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
       <style>{`
         *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;}
-        canvas{pointer-events:none;display:block;touch-action:none;}
+        canvas{pointer-events:none;display:block;touch-action:pan-x pan-y;}
         img{-webkit-touch-callout:none!important;pointer-events:none;}
         @media print{body{display:none!important;}}
         @keyframes spin{to{transform:rotate(360deg);}}
