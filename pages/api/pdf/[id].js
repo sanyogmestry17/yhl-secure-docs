@@ -20,7 +20,9 @@ export default async function handler(req, res) {
     res.setHeader('X-Content-Type-Options', 'nosniff');
 
     if (pdf.source === 'blob') {
-      const blobRes = await fetch(pdf.blobUrl);
+      const blobRes = await fetch(pdf.blobUrl, {
+        headers: { authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+      });
       if (!blobRes.ok) return res.status(502).json({ error: 'Failed to fetch document' });
       const buffer = Buffer.from(await blobRes.arrayBuffer());
       return res.send(buffer);

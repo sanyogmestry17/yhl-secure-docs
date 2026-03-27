@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     const id = uuid();
     const blobPath = `pdfs/${id}-${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
     // Stream req directly to Vercel Blob — no buffering, no base64, no size inflation
-    const blob = await put(blobPath, req, { access: 'public', contentType: 'application/pdf' });
+    const blob = await put(blobPath, req, { access: 'private', contentType: 'application/pdf' });
     const record = await createPDFMeta({ id, name: displayName, filename: blob.pathname, blobUrl: blob.url, folderId });
     return res.status(201).json({ pdf: record });
   } catch (err) {
