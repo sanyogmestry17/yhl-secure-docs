@@ -57,6 +57,30 @@ export default function ViewerPage() {
     };
     document.addEventListener('touchstart', blockEdgeSwipe, { passive: false });
 
+    // Layer 4: Block Safari's "zoom-out past 1x → back navigation" behavior.
+    // When the user pinches OUT to return to 1x zoom and continues the gesture,
+    // Safari can interpret the horizontal component as a back swipe. We catch
+    // this by watching visualViewport.scale — the moment scale drops back to 1x
+    // we push a new history entry so there's nothing for Safari to pop.
+    let lastScale = window.visualViewport ? window.visualViewport.scale : 1;
+    const handleViewportScale = () => {
+      const vp = window.visualViewport;
+      if (!vp) return;
+      const scale = vp.scale;
+      if (scale <= 1.05 && lastScale > 1.05) {
+        window.history.pushState(null, '', window.location.href);
+      }
+      lastScale = scale;
+    };
+    window.visualViewport?.addEventListener('resize', handleViewportScale);
+    window.visualViewport?.addEventListener('scroll', handleViewportScale);
+
+    // Layer 5: Block horizontal overscroll specifically (x-axis only).
+    // This prevents the rubber-band overscroll in X that triggers Safari's back
+    // navigation. Using only overscroll-behavior-x avoids the iOS bug where
+    // overscroll-behavior:none on body kills vertical touch scrolling entirely.
+    document.body.style.overscrollBehaviorX = 'none';
+
     const block = e => e.preventDefault();
     const blockKeys = e => {
       if ((e.ctrlKey || e.metaKey) && ['s','p','c','a','u'].includes(e.key.toLowerCase())) e.preventDefault();
@@ -84,6 +108,9 @@ export default function ViewerPage() {
       document.removeEventListener('keydown', blockKeys);
       document.removeEventListener('visibilitychange', onHide);
       clearInterval(devCheck);
+      window.visualViewport?.removeEventListener('resize', handleViewportScale);
+      window.visualViewport?.removeEventListener('scroll', handleViewportScale);
+      document.body.style.overscrollBehaviorX = '';
     };
   }, []);
 
