@@ -34,8 +34,14 @@ export default function ViewerPage() {
   }, [id, user]);
 
   useEffect(() => {
-    // Block Safari swipe-back navigation — push a duplicate history entry so
-    // the back gesture stays on this page instead of navigating away.
+    // Block iOS Safari swipe-back navigation at both the Next.js router level
+    // and the raw history level. router.beforePopState fires before any route
+    // change is processed; returning false cancels it entirely.
+    router.beforePopState(() => {
+      window.history.pushState(null, '', window.location.href);
+      return false;
+    });
+
     window.history.pushState(null, '', window.location.href);
     const lockHistory = () => window.history.pushState(null, '', window.location.href);
     window.addEventListener('popstate', lockHistory);
@@ -46,17 +52,21 @@ export default function ViewerPage() {
     };
     document.addEventListener('contextmenu', block);
     document.addEventListener('keydown', blockKeys);
+
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth <= 768;
     const devCheck = setInterval(() => {
       if (isMobile) return;
       const open = window.outerWidth - window.innerWidth > 200 || window.outerHeight - window.innerHeight > 200;
       if (containerRef.current) containerRef.current.style.filter = open ? 'blur(24px)' : 'none';
     }, 800);
+
     const onHide = () => {
       if (containerRef.current) containerRef.current.style.filter = document.hidden ? 'blur(24px)' : 'none';
     };
     document.addEventListener('visibilitychange', onHide);
+
     return () => {
+      router.beforePopState(() => true);
       window.removeEventListener('popstate', lockHistory);
       document.removeEventListener('contextmenu', block);
       document.removeEventListener('keydown', blockKeys);
@@ -96,7 +106,6 @@ export default function ViewerPage() {
     const scale = window.innerWidth < 600 ? 1.0 : window.innerWidth < 900 ? 1.3 : 1.6;
     const BATCH_SIZE = 4;
 
-    // Pre-allocate DOM slots in order so pages always appear in sequence
     const slots = [];
     for (let p = 1; p <= pdf.numPages; p++) {
       const wrap = document.createElement('div');
@@ -121,12 +130,11 @@ export default function ViewerPage() {
       const canvas = document.createElement('canvas');
       canvas.width = vp.width;
       canvas.height = vp.height;
-      canvas.style.cssText = 'display:block;width:100%;';
+      canvas.style.cssText = 'display:block;width:100%;touch-action:pan-x pan-y pinch-zoom;pointer-events:none;';
 
       const ctx = canvas.getContext('2d');
       await page.render({ canvasContext: ctx, viewport: vp }).promise;
 
-      // Watermark
       ctx.save();
       ctx.globalAlpha = 0.055;
       ctx.fillStyle = '#BF0426';
@@ -148,7 +156,6 @@ export default function ViewerPage() {
       setStatus(`Rendering page ${rendered} of ${pdf.numPages}…`);
     }
 
-    // Render in batches of BATCH_SIZE concurrently
     for (let p = 1; p <= pdf.numPages; p += BATCH_SIZE) {
       const batch = [];
       for (let i = p; i <= Math.min(p + BATCH_SIZE - 1, pdf.numPages); i++) {
@@ -171,17 +178,19 @@ export default function ViewerPage() {
       </Head>
       <style>{`
         *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;}
-        canvas{pointer-events:none;display:block;touch-action:pan-x pan-y pinch-zoom;}
         img{-webkit-touch-callout:none!important;pointer-events:none;}
         @media print{body{display:none!important;}}
         @keyframes spin{to{transform:rotate(360deg);}}
         @keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
-        @keyframes progressBar{from{width:0;}to{width:100%;}}
-        html,body{overscroll-behavior:none;}
       `}</style>
 
+      {/*
+        The wrap div IS the scroll container — position:fixed fills the viewport,
+        overflow:auto enables scrolling inside it, and overscroll-behavior:none
+        on THIS element (not html/body) stops iOS Safari's edge-bounce back gesture
+        without breaking touch scrolling (which html/body overscroll-behavior breaks on iOS).
+      */}
       <div style={s.wrap}>
-        {/* Sticky nav */}
         <nav className="viewer-nav" style={s.nav}>
           <div style={s.navL}>
             <button onClick={() => router.push('/dashboard')} style={s.back}>← Back</button>
@@ -193,7 +202,6 @@ export default function ViewerPage() {
           </div>
         </nav>
 
-        {/* Loading progress bar */}
         {!done && !error && (
           <div style={s.progressOuter}>
             <div style={{ ...s.progressBar, width: `${progress}%`, transition:'width 0.3s ease' }} />
@@ -223,7 +231,7 @@ export default function ViewerPage() {
             </div>
           )}
 
-          <div ref={containerRef} style={{ display: 'block', width:'100%', maxWidth:900, margin:'0 auto' }} />
+          <div ref={containerRef} style={{ display:'block', width:'100%', maxWidth:900, margin:'0 auto' }} />
 
           {done && (
             <div style={s.doneFooter}>
@@ -239,7 +247,15 @@ export default function ViewerPage() {
 }
 
 const s = {
-  wrap: { minHeight:'100vh', background:'#f2f2f2', fontFamily:"'Syne',sans-serif" },
+  // Fixed viewport container = the scroll context. overscroll-behavior:none here
+  // prevents iOS Safari back-swipe without breaking touch scroll (unlike on html/body).
+  wrap: {
+    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+    overflowY: 'auto', overflowX: 'auto',
+    overscrollBehavior: 'none',
+    WebkitOverflowScrolling: 'touch',
+    background: '#f2f2f2', fontFamily: "'Syne',sans-serif",
+  },
   nav: { display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 32px', background:'#fff', borderBottom:'2px solid #FFF0F2', position:'sticky', top:0, zIndex:100, boxShadow:'0 2px 8px rgba(0,0,0,0.05)' },
   navL: { display:'flex', alignItems:'center', gap:16 },
   navR: { display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', justifyContent:'flex-end' },
@@ -247,7 +263,7 @@ const s = {
   protectedBadge: { background:'#FFF0F2', color:'#BF0426', padding:'5px 12px', borderRadius:20, fontSize:11, fontWeight:700, border:'1px solid #FADADD', whiteSpace:'nowrap' },
   userBadge: { background:'#f5f5f5', color:'#888', padding:'5px 12px', borderRadius:20, fontSize:11, border:'1px solid #eee', maxWidth:200, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
   progressOuter: { height:3, background:'#FFF0F2', width:'100%' },
-  progressBar: { height:'100%', background:'linear-gradient(90deg, #BF0426, #ff4d6d)', borderRadius:2, transition:'width 0.3s ease' },
+  progressBar: { height:'100%', background:'linear-gradient(90deg, #BF0426, #ff4d6d)', borderRadius:2 },
   area: { padding:'36px 24px', minHeight:'calc(100vh - 60px)' },
   center: { textAlign:'center', padding:'80px 20px' },
   spinnerWrap: { position:'relative', width:72, height:72, margin:'0 auto 24px' },
