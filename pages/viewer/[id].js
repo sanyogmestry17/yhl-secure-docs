@@ -34,17 +34,28 @@ export default function ViewerPage() {
   }, [id, user]);
 
   useEffect(() => {
-    // Block iOS Safari swipe-back navigation at both the Next.js router level
-    // and the raw history level. router.beforePopState fires before any route
-    // change is processed; returning false cancels it entirely.
+    // Layer 1: Next.js router-level back-navigation block
     router.beforePopState(() => {
       window.history.pushState(null, '', window.location.href);
       return false;
     });
 
+    // Layer 2: Raw history lock (fires before Next.js processes popstate)
     window.history.pushState(null, '', window.location.href);
     const lockHistory = () => window.history.pushState(null, '', window.location.href);
     window.addEventListener('popstate', lockHistory);
+
+    // Layer 3: Block Safari's swipe-back gesture at the touch level.
+    // Safari's back-swipe always starts from within ~30px of the left edge.
+    // Blocking touchstart there (single finger only) stops the gesture before
+    // it can trigger navigation — without affecting pinch-to-zoom (multi-touch)
+    // or normal vertical scrolling (which doesn't originate at the left edge).
+    const blockEdgeSwipe = (e) => {
+      if (e.touches.length === 1 && e.touches[0].clientX < 30) {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener('touchstart', blockEdgeSwipe, { passive: false });
 
     const block = e => e.preventDefault();
     const blockKeys = e => {
@@ -68,6 +79,7 @@ export default function ViewerPage() {
     return () => {
       router.beforePopState(() => true);
       window.removeEventListener('popstate', lockHistory);
+      document.removeEventListener('touchstart', blockEdgeSwipe);
       document.removeEventListener('contextmenu', block);
       document.removeEventListener('keydown', blockKeys);
       document.removeEventListener('visibilitychange', onHide);
@@ -184,12 +196,6 @@ export default function ViewerPage() {
         @keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
       `}</style>
 
-      {/*
-        The wrap div IS the scroll container — position:fixed fills the viewport,
-        overflow:auto enables scrolling inside it, and overscroll-behavior:none
-        on THIS element (not html/body) stops iOS Safari's edge-bounce back gesture
-        without breaking touch scrolling (which html/body overscroll-behavior breaks on iOS).
-      */}
       <div style={s.wrap}>
         <nav className="viewer-nav" style={s.nav}>
           <div style={s.navL}>
@@ -247,15 +253,7 @@ export default function ViewerPage() {
 }
 
 const s = {
-  // Fixed viewport container = the scroll context. overscroll-behavior:none here
-  // prevents iOS Safari back-swipe without breaking touch scroll (unlike on html/body).
-  wrap: {
-    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-    overflowY: 'auto', overflowX: 'auto',
-    overscrollBehavior: 'none',
-    WebkitOverflowScrolling: 'touch',
-    background: '#f2f2f2', fontFamily: "'Syne',sans-serif",
-  },
+  wrap: { minHeight: '100vh', background: '#f2f2f2', fontFamily: "'Syne',sans-serif" },
   nav: { display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 32px', background:'#fff', borderBottom:'2px solid #FFF0F2', position:'sticky', top:0, zIndex:100, boxShadow:'0 2px 8px rgba(0,0,0,0.05)' },
   navL: { display:'flex', alignItems:'center', gap:16 },
   navR: { display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', justifyContent:'flex-end' },
