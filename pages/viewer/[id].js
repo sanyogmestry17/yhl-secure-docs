@@ -143,67 +143,98 @@ export default function ViewerPage() {
     container.innerHTML = '';
 
     const scale = window.innerWidth < 600 ? 1.0 : window.innerWidth < 900 ? 1.3 : 1.6;
-    const BATCH_SIZE = 4;
 
+    // Create placeholder slots for every page upfront so the scroll bar is correct.
     const slots = [];
     for (let p = 1; p <= pdf.numPages; p++) {
       const wrap = document.createElement('div');
-      wrap.style.cssText = `margin:0 auto 24px;width:100%;box-shadow:0 4px 32px rgba(0,0,0,0.15);border-radius:10px;overflow:hidden;background:#f0f0f0;min-height:200px;`;
+      wrap.style.cssText = `margin:0 auto 24px;width:100%;box-shadow:0 4px 32px rgba(0,0,0,0.15);border-radius:10px;overflow:hidden;background:#f0f0f0;min-height:400px;`;
+      wrap.dataset.page = String(p);
+      wrap.dataset.state = 'empty'; // empty | rendering | rendered
       container.appendChild(wrap);
       slots.push(wrap);
     }
 
-    let rendered = 0;
+    // pagesEver tracks pages rendered at least once (monotonically increasing).
+    const pagesEver = new Set();
 
-    async function renderPage(p) {
-      const page = await pdf.getPage(p);
-      const vp = page.getViewport({ scale });
-      const wrap = slots[p - 1];
+    async function renderSlot(p, wrap) {
+      if (wrap.dataset.state !== 'empty') return;
+      wrap.dataset.state = 'rendering';
+      try {
+        const page = await pdf.getPage(p);
+        const vp = page.getViewport({ scale });
 
-      wrap.style.cssText = `margin:0 auto 24px;width:100%;max-width:${vp.width}px;box-shadow:0 4px 32px rgba(0,0,0,0.15);border-radius:10px;overflow:hidden;background:#fff;animation:fadeUp 0.4s ease forwards;`;
+        const pageLabel = document.createElement('div');
+        pageLabel.style.cssText = `background:#f8f8f8;border-bottom:1px solid #f0f0f0;padding:8px 16px;font-size:11px;color:#aaa;font-family:'Syne',sans-serif;font-weight:600;letter-spacing:1px;`;
+        pageLabel.textContent = `PAGE ${p} OF ${pdf.numPages}`;
 
-      const pageLabel = document.createElement('div');
-      pageLabel.style.cssText = `background:#f8f8f8;border-bottom:1px solid #f0f0f0;padding:8px 16px;font-size:11px;color:#aaa;font-family:'Syne',sans-serif;font-weight:600;letter-spacing:1px;`;
-      pageLabel.textContent = `PAGE ${p} OF ${pdf.numPages}`;
+        const canvas = document.createElement('canvas');
+        canvas.width = vp.width;
+        canvas.height = vp.height;
+        canvas.style.cssText = 'display:block;width:100%;touch-action:pan-x pan-y pinch-zoom;pointer-events:none;';
 
-      const canvas = document.createElement('canvas');
-      canvas.width = vp.width;
-      canvas.height = vp.height;
-      canvas.style.cssText = 'display:block;width:100%;touch-action:pan-x pan-y pinch-zoom;pointer-events:none;';
+        const ctx = canvas.getContext('2d');
+        await page.render({ canvasContext: ctx, viewport: vp }).promise;
 
-      const ctx = canvas.getContext('2d');
-      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+        ctx.save();
+        ctx.globalAlpha = 0.055;
+        ctx.fillStyle = '#BF0426';
+        ctx.font = `bold ${Math.floor(vp.width / 40)}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.translate(vp.width / 2, vp.height / 2);
+        ctx.rotate(-35 * Math.PI / 180);
+        const wm = `CONFIDENTIAL • ${user.email}`;
+        for (let y = -vp.height; y < vp.height; y += 180)
+          for (let x = -vp.width; x < vp.width; x += 520)
+            ctx.fillText(wm, x, y);
+        ctx.restore();
 
-      ctx.save();
-      ctx.globalAlpha = 0.055;
-      ctx.fillStyle = '#BF0426';
-      ctx.font = `bold ${Math.floor(vp.width / 40)}px Arial`;
-      ctx.textAlign = 'center';
-      ctx.translate(vp.width / 2, vp.height / 2);
-      ctx.rotate(-35 * Math.PI / 180);
-      const wm = `CONFIDENTIAL • ${user.email}`;
-      for (let y = -vp.height; y < vp.height; y += 180)
-        for (let x = -vp.width; x < vp.width; x += 520)
-          ctx.fillText(wm, x, y);
-      ctx.restore();
+        if (!containerRef.current) return; // unmounted
+        wrap.style.cssText = `margin:0 auto 24px;width:100%;max-width:${vp.width}px;min-height:${vp.height}px;box-shadow:0 4px 32px rgba(0,0,0,0.15);border-radius:10px;overflow:hidden;background:#fff;animation:fadeUp 0.4s ease forwards;`;
+        wrap.innerHTML = '';
+        wrap.appendChild(pageLabel);
+        wrap.appendChild(canvas);
+        wrap.dataset.state = 'rendered';
+        wrap.dataset.h = String(vp.height);
 
-      wrap.appendChild(pageLabel);
-      wrap.appendChild(canvas);
-
-      rendered++;
-      setCurrentPage(rendered);
-      setStatus(`Rendering page ${rendered} of ${pdf.numPages}…`);
-    }
-
-    for (let p = 1; p <= pdf.numPages; p += BATCH_SIZE) {
-      const batch = [];
-      for (let i = p; i <= Math.min(p + BATCH_SIZE - 1, pdf.numPages); i++) {
-        batch.push(renderPage(i));
+        pagesEver.add(p);
+        setCurrentPage(pagesEver.size);
+        setStatus(`Rendering page ${pagesEver.size} of ${pdf.numPages}…`);
+        // Hide the loading spinner once the first batch (4 pages) is visible.
+        if (pagesEver.size >= Math.min(4, pdf.numPages)) setDone(true);
+      } catch {
+        wrap.dataset.state = 'empty'; // allow retry on next intersection
       }
-      await Promise.all(batch);
     }
 
-    setDone(true);
+    // Release canvas GPU/CPU memory for pages that scrolled far out of view.
+    // The slot keeps its height so the scroll bar doesn't jump.
+    // When the slot comes back into view, renderSlot re-draws it.
+    function freeSlot(wrap) {
+      if (wrap.dataset.state !== 'rendered') return;
+      const canvas = wrap.querySelector('canvas');
+      if (canvas) { canvas.width = 0; canvas.height = 0; canvas.remove(); }
+      const h = wrap.dataset.h || '400';
+      wrap.innerHTML = '';
+      wrap.style.background = '#f0f0f0';
+      wrap.style.minHeight = `${h}px`;
+      wrap.dataset.state = 'empty';
+    }
+
+    // rootMargin: render pages up to 1200px before they enter the viewport and
+    // release pages more than 1200px past the viewport edge.
+    // On a ~900px-tall phone this keeps ~3 pages above + visible + ~3 pages below
+    // in memory at once, instead of the entire document.
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const p = parseInt(entry.target.dataset.page);
+        if (entry.isIntersecting) renderSlot(p, entry.target);
+        else freeSlot(entry.target);
+      });
+    }, { rootMargin: '1200px 0px' });
+
+    slots.forEach(s => obs.observe(s));
   }
 
   const progress = totalPages > 0 ? Math.round((currentPage / totalPages) * 100) : 0;
